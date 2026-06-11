@@ -1,0 +1,15 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno — NUNCA subir a git
+.env
+
+# Firebase (Fase 2)
+server/config/firebase-config.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store

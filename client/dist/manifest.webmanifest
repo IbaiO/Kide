@@ -1,0 +1,13 @@
+{
+    "name":"Kide — Gastuen kudeaketa",
+    "short_name":"Kide",
+    "description":"Taldeko gastuak kudeatzeko aplikazioa.",
+    "start_url":"/",
+    "display":"standalone",
+    "background_color":"#0f0f11",
+    "theme_color":"#7c6af7",
+    "lang":"eus",
+    "scope":"/",
+    "icons":[
+        {"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png"},
+        {"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}

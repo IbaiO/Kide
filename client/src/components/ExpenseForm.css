@@ -1,0 +1,29 @@
+.ef-overlay {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+.ef-form { display: flex; flex-direction: column; gap: 1rem; }
+.ef-form h3 { font-size: 1rem; font-weight: 600; }
+.ef-form label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; color: var(--text-2); }
+
+.ef-participants { display: flex; flex-direction: column; gap: 0.4rem; }
+.ef-participants-label { font-size: 0.85rem; color: var(--text-2); margin-bottom: 0.25rem; }
+
+.ef-participant {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: background 0.12s;
+}
+.ef-participant.active { background: var(--bg-hover); border-color: var(--border); }
+.ef-participant-toggle { display: flex; align-items: center; gap: 0.5rem; flex: 1; cursor: pointer; font-size: 0.9rem; }
+.ef-participant-toggle input[type="checkbox"] { width: auto; accent-color: var(--accent); }
+.ef-value-input { width: 90px; text-align: right; }
+.ef-equal-share { font-size: 0.82rem; color: var(--text-2); font-family: 'DM Mono', monospace; margin-left: auto; }
+
+.ef-error { color: var(--red); font-size: 0.82rem; }
+.ef-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
