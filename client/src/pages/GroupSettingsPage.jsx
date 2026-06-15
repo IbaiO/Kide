@@ -9,11 +9,11 @@ export default function GroupSettingsPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
 
-  const [group, setGroup]     = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [name, setName]       = useState('');
-  const [desc, setDesc]       = useState('');
-  const [saving, setSaving]   = useState(false);
+  const [group, setGroup]       = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [name, setName]         = useState('');
+  const [desc, setDesc]         = useState('');
+  const [saving, setSaving]     = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [addingMember, setAddingMember] = useState(false);
   const [feedback, setFeedback] = useState('');
@@ -103,7 +103,7 @@ export default function GroupSettingsPage() {
 
       {/* ── Editar grupo (solo creador) ── */}
       {isCreator && (
-        <section className="gs-section">
+        <section className="gs-section" aria-label="Taldearen datuak editatu">
           <h3>Taldearen datuak</h3>
           <form onSubmit={saveGroup}>
             <label>Izena
@@ -120,7 +120,7 @@ export default function GroupSettingsPage() {
       )}
 
       {/* ── Miembros ── */}
-      <section className="gs-section">
+      <section className="gs-section" aria-label="Kideen kudeaketa">
         <h3>Kideak ({group.members?.length})</h3>
         <ul className="gs-members">
           {group.members?.map(m => (
@@ -150,11 +150,11 @@ export default function GroupSettingsPage() {
         </form>
       </section>
 
-      {/* ── Zona de peligro ── */}
+      {/* ── Taldea ezabatu ── */}
       {isCreator && (
-        <section className="gs-section gs-danger-zone">
-          <h3>Zona arriskutsua</h3>
-          <p>Taldea ezabatuz gero, gasto guztiak betiko galduko dira.</p>
+        <section className="gs-section gs-danger-zone" aria-label="Taldea ezabatu">
+          <h3>Taldea ezabatu</h3>
+          <p>Taldea ezabatuz gero, gastu guztiak betiko galduko dira.</p>
           <button className="btn-danger" onClick={deleteGroup}>Taldea ezabatu</button>
         </section>
       )}

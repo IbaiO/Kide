@@ -1,7 +1,7 @@
 {
   "name": "kide-server",
   "version": "1.0.0",
-  "description": "Backend para Kide - gestor de gastos en grupo",
+  "description": "Kide app-rako backend",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
@@ -10,18 +10,19 @@
   "dependencies": {
     "connect-mongo": "^6.0.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "express-session": "^1.18.0",
-    "firebase": "^10.12.0",
-    "firebase-admin": "^12.1.0",
-    "mongodb": "^6.6.2",
-    "mongoose": "^8.4.0"
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "firebase": "^11.3.0",
+    "firebase-admin": "^13.0.1",
+    "mongodb": "^6.12.0",
+    "mongoose": "^8.9.2",
+    "express-validator": "^7.1.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.9"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=24.0.0"
   }
 }

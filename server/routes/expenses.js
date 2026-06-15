@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { body, param, validationResult } = require('express-validator');
 const Expense = require('../models/Expense');
 const Group = require('../models/Group');
 const User = require('../models/User');
@@ -8,21 +9,76 @@ const { calculateSplits } = require('../utils/splits');
 
 router.use(verifyToken);
 
+// ─── Middleware reutilizable: corta la cadena si hay errores de validación ────
+function handleValidation(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    // Devolvemos solo el primer mensaje de error para mantener respuestas limpias
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
+  next();
+}
+
+// ─── Reglas de validación compartidas (POST y PUT comparten descripción/amount) ─
+const descriptionRules = body('description')
+  .if(body('description').exists()) // en PUT el campo es opcional
+  .trim()
+  .notEmpty()
+  .withMessage('El concepto del gasto no puede estar vacío');
+
+const amountRules = body('amount')
+  .if(body('amount').exists()) // en PUT el campo es opcional
+  .isFloat({ gt: 0 })
+  .withMessage('El importe debe ser un número mayor que 0');
+
+const splitTypeRules = body('splitType')
+  .optional()
+  .isIn(['equal', 'percentage', 'exact'])
+  .withMessage("El tipo de reparto debe ser 'equal', 'percentage' o 'exact'");
+
+// ─── Reglas exclusivas del POST (campos obligatorios) ────────────────────────
+const createExpenseRules = [
+  body('groupId')
+    .notEmpty()
+    .withMessage('El groupId es obligatorio')
+    .isMongoId()
+    .withMessage('El groupId no tiene un formato válido'),
+  body('description')
+    .trim()
+    .notEmpty()
+    .withMessage('El concepto del gasto no puede estar vacío'),
+  body('amount')
+    .notEmpty()
+    .withMessage('El importe es obligatorio')
+    .isFloat({ gt: 0 })
+    .withMessage('El importe debe ser un número mayor que 0'),
+  splitTypeRules,
+];
+
+// ─── Reglas exclusivas del PUT (todos los campos son opcionales) ──────────────
+const updateExpenseRules = [
+  param('id')
+    .isMongoId()
+    .withMessage('El id del gasto no tiene un formato válido'),
+  descriptionRules,
+  amountRules,
+  splitTypeRules,
+];
+
+// ─── Helpers internos ────────────────────────────────────────────────────────
 async function getMongoUser(firebaseUid) {
   const user = await User.findOne({ firebaseUid }).lean();
-  if (!user) throw new Error('Usuario no encontrado');
+  if (!user) throw new Error('Ez da erabiltzailea aurkitu');
   return user;
 }
 
-// Comprueba que el usuario pertenece al grupo
 async function assertMember(groupId, userId) {
   const group = await Group.findOne({ _id: groupId, members: userId }).lean();
-  if (!group) throw new Error('Grupo no encontrado o no tienes acceso');
+  if (!group) throw new Error('Ez da taldea aurkitu edo baimena falta da');
   return group;
 }
 
 // ─── GET /api/expenses/group/:groupId ─────────────────────────────────────────
-// Lista todos los gastos de un grupo
 router.get('/group/:groupId', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
@@ -46,32 +102,20 @@ router.get('/group/:groupId', async (req, res) => {
 //
 // Body:
 // {
-//   groupId:      string,
-//   description:  string,
-//   amount:       number,
-//   date?:        ISO string,
-//   splitType?:   'equal' | 'percentage' | 'exact'  (default: 'equal')
+//   groupId:       string  (obligatorio, MongoId válido)
+//   description:   string  (obligatorio, no vacío)
+//   amount:        number  (obligatorio, > 0)
+//   date?:         ISO string
+//   splitType?:    'equal' | 'percentage' | 'exact'  (default: 'equal')
 //   participants?: [{ user: id, value?: number }]
-//     · omitir participants → se incluyen todos los miembros del grupo
-//     · equal    → value ignorado
-//     · percentage → value = porcentaje
-//     · exact    → value = cantidad exacta
 // }
-router.post('/', async (req, res) => {
+router.post('/', createExpenseRules, handleValidation, async (req, res) => {
   const { groupId, description, amount, date, splitType = 'equal', participants } = req.body;
-
-  if (!groupId || !description || !amount) {
-    return res.status(400).json({ error: 'groupId, description y amount son obligatorios' });
-  }
-  if (amount <= 0) {
-    return res.status(400).json({ error: 'El importe debe ser mayor que 0' });
-  }
 
   try {
     const user = await getMongoUser(req.user.uid);
     const group = await assertMember(groupId, user._id);
 
-    // Si no se especifican participantes, usamos todos los miembros del grupo
     const rawParticipants =
       participants && participants.length > 0
         ? participants
@@ -102,7 +146,6 @@ router.post('/', async (req, res) => {
 });
 
 // ─── GET /api/expenses/:id ────────────────────────────────────────────────────
-// Detalle de un gasto
 router.get('/:id', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
@@ -124,7 +167,7 @@ router.get('/:id', async (req, res) => {
 
 // ─── PUT /api/expenses/:id ────────────────────────────────────────────────────
 // Edita un gasto (solo quien lo creó)
-router.put('/:id', async (req, res) => {
+router.put('/:id', updateExpenseRules, handleValidation, async (req, res) => {
   const { description, amount, date, splitType, participants } = req.body;
 
   try {
@@ -138,7 +181,6 @@ router.put('/:id', async (req, res) => {
     const newAmount = amount ? parseFloat(amount) : expense.amount;
     const newSplitType = splitType || expense.splitType;
 
-    // Recalculamos splits si cambia el importe, el tipo o los participantes
     if (amount || splitType || participants) {
       const group = await Group.findById(expense.group).lean();
       const rawParticipants =
@@ -168,7 +210,6 @@ router.put('/:id', async (req, res) => {
 });
 
 // ─── DELETE /api/expenses/:id ─────────────────────────────────────────────────
-// Elimina un gasto (solo quien lo creó)
 router.delete('/:id', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
@@ -187,8 +228,6 @@ router.delete('/:id', async (req, res) => {
 });
 
 // ─── GET /api/expenses/group/:groupId/balance ──────────────────────────────────
-// Calcula el balance neto de cada miembro (quién debe cuánto a quién)
-// Este endpoint alimentará la Fase 4 (optimización con PuLP)
 router.get('/group/:groupId/balance', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
@@ -196,7 +235,6 @@ router.get('/group/:groupId/balance', async (req, res) => {
 
     const expenses = await Expense.find({ group: req.params.groupId }).lean();
 
-    // balance[userId] = cuánto ha puesto de su bolsillo (positivo = le deben, negativo = debe)
     const balance = {};
     group.members.forEach((m) => (balance[m.toString()] = 0));
 
@@ -210,7 +248,6 @@ router.get('/group/:groupId/balance', async (req, res) => {
       }
     }
 
-    // Formateamos para que la Fase 4 lo reciba limpio
     const result = Object.entries(balance).map(([userId, net]) => ({
       userId,
       net: parseFloat(net.toFixed(2)),

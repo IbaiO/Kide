@@ -8,12 +8,14 @@ export default function LoginPage() {
   const { loginWithEmail, registerWithEmail, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
-  const [mode, setMode]       = useState('login'); // 'login' | 'register'
-  const [email, setEmail]     = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName]       = useState('');
-  const [error, setError]     = useState('');
-  const [loading, setLoading] = useState(false);
+  const [mode, setMode]           = useState('login'); // 'login' | 'register'
+  const [email, setEmail]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [name, setName]           = useState('');
+  const [error, setError]         = useState('');
+  const [loading, setLoading]     = useState(false);
+  // Guarda qué campo está activo para aplicar el estilo de foco
+  const [focusedField, setFocusedField] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -43,6 +45,11 @@ export default function LoginPage() {
     }
   }
 
+  // Devuelve las clases del input según si está enfocado o no
+  function inputClass(fieldName) {
+    return focusedField === fieldName ? 'input-focused' : '';
+  }
+
   return (
     <div className="login-bg">
       <div className="login-card">
@@ -69,6 +76,9 @@ export default function LoginPage() {
               placeholder="Izena"
               value={name}
               onChange={e => setName(e.target.value)}
+              onFocus={() => setFocusedField('name')}
+              onBlur={() => setFocusedField(null)}
+              className={inputClass('name')}
               required
             />
           )}
@@ -77,6 +87,9 @@ export default function LoginPage() {
             placeholder="Email"
             value={email}
             onChange={e => setEmail(e.target.value)}
+            onFocus={() => setFocusedField('email')}
+            onBlur={() => setFocusedField(null)}
+            className={inputClass('email')}
             required
           />
           <input
@@ -84,6 +97,9 @@ export default function LoginPage() {
             placeholder="Pasahitza"
             value={password}
             onChange={e => setPassword(e.target.value)}
+            onFocus={() => setFocusedField('password')}
+            onBlur={() => setFocusedField(null)}
+            className={inputClass('password')}
             required
           />
           {error && <p className="login-error">{error}</p>}
@@ -116,11 +132,11 @@ function GoogleIcon() {
 
 function friendlyError(code) {
   const map = {
-    'auth/user-not-found':     'Ez da aurkitu erabiltzailerik email horrekin.',
-    'auth/wrong-password':     'Pasahitz okerra.',
-    'auth/email-already-in-use': 'Email hori dagoeneko erabiltzen da.',
-    'auth/weak-password':      'Pasahitzak gutxienez 6 karaktere behar ditu.',
-    'auth/invalid-email':      'Email helbide baliogabea.',
+    'auth/user-not-found':       'Ez da aurkitu erabiltzailerik email horrekin.',
+    'auth/wrong-password':       'Pasahitz okerra.',
+    'auth/email-already-in-use': 'Email horrekin lotutako kontu bat existitzen da..',
+    'auth/weak-password':        'Pasahitzak gutxienez 6 karaktere behar ditu.',
+    'auth/invalid-email':        'Email helbide baliogabea.',
   };
   return map[code] || 'Errore bat gertatu da. Saiatu berriro.';
 }

@@ -1,7 +1,5 @@
 import sys
 import json
-from psutil import users
-from psutil import users
 import pulp
 
 

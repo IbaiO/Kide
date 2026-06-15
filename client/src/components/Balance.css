@@ -39,3 +39,12 @@
 .bal-transfer-amount { font-weight: 600; font-family: 'DM Mono', monospace; color: var(--accent); }
 
 .bal-recalc { font-size: 0.8rem; align-self: flex-start; }
+
+/* ── Canvas: diagrama de barras horizontales ─────────────────────────────── */
+.bal-canvas {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  /* Separación visual del canvas respecto a la lista de texto */
+  margin-bottom: 0.25rem;
+}

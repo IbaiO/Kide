@@ -69,7 +69,7 @@ router.get('/me', verifyToken, async (req, res) => {
       .lean();
 
     if (!user) {
-      return res.status(404).json({ error: 'Usuario no encontrado en la base de datos' });
+      return res.status(404).json({ error: 'Ez da erabiltzailea aurkitu en la base de datos' });
     }
 
     return res.json({

@@ -64,3 +64,14 @@
   transition: background 0.15s;
 }
 .btn-google:hover { background: var(--bg); }
+
+/* ── Micro-interacción de foco en inputs ─────────────────────────────────── */
+.login-form input {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-form input.input-focused {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124, 106, 247, 0.15);
+  outline: none;
+}

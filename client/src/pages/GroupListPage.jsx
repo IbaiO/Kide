@@ -8,11 +8,11 @@ export default function GroupListPage() {
   const { profile, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [groups, setGroups]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showNew, setShowNew] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newDesc, setNewDesc] = useState('');
+  const [groups, setGroups]     = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [showNew, setShowNew]   = useState(false);
+  const [newName, setNewName]   = useState('');
+  const [newDesc, setNewDesc]   = useState('');
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -53,29 +53,33 @@ export default function GroupListPage() {
           <button className="btn-primary" onClick={() => setShowNew(true)}>+ Talde berria</button>
         </div>
 
+        {/* ── Formulario de creación de grupo ── */}
         {showNew && (
-          <form className="new-group-form" onSubmit={createGroup}>
-            <input
-              autoFocus
-              placeholder="Taldearen izena"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              required
-            />
-            <input
-              placeholder="Deskribapena (aukerakoa)"
-              value={newDesc}
-              onChange={e => setNewDesc(e.target.value)}
-            />
-            <div className="form-actions">
-              <button type="button" className="btn-ghost" onClick={() => setShowNew(false)}>Utzi</button>
-              <button type="submit" className="btn-primary" disabled={creating}>
-                {creating ? 'Sortzen…' : 'Sortu'}
-              </button>
-            </div>
-          </form>
+          <section aria-label="Talde berria sortu">
+            <form className="new-group-form" onSubmit={createGroup}>
+              <input
+                autoFocus
+                placeholder="Taldearen izena"
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                required
+              />
+              <input
+                placeholder="Deskribapena (aukerakoa)"
+                value={newDesc}
+                onChange={e => setNewDesc(e.target.value)}
+              />
+              <div className="form-actions">
+                <button type="button" className="btn-ghost" onClick={() => setShowNew(false)}>Utzi</button>
+                <button type="submit" className="btn-primary" disabled={creating}>
+                  {creating ? 'Sortzen…' : 'Sortu'}
+                </button>
+              </div>
+            </form>
+          </section>
         )}
 
+        {/* ── Listado de grupos ── */}
         {loading ? (
           <div className="gl-empty">Kargatzen…</div>
         ) : groups.length === 0 ? (

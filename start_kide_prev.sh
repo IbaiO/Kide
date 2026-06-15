@@ -1,7 +1,7 @@
 #!/bin/bash
-# ============================================================================= =
-#  start_kide.sh - Script de arranque automatizado para el ecosistema Kide (Modo Dev)
-# ============================================================================= =
+# ==============================================================================
+#  start_kide.sh - Script de arranque automatizado para el ecosistema Kide (Preview PWA + Backend Express)
+# ==============================================================================
 
 BASE_DIR="/home/ibai/Dokumentuak/GrAL/Kide"
 LOG_DIR="$BASE_DIR/logs"
@@ -10,7 +10,7 @@ LOG_DIR="$BASE_DIR/logs"
 mkdir -p "$LOG_DIR"
 
 echo "======================================================================="
-echo "🚀 Kide aplikazioaren ekosistema abiarazten (Garapen Modua)..."
+echo "🚀 Kide aplikazioaren ekosistema abiarazten (Preview)..."
 echo "======================================================================="
 
 # 1. Arrancar el Servidor Backend (Express + MongoDB)
@@ -26,12 +26,12 @@ echo $BACKEND_PID > "$LOG_DIR/backend.pid"
 echo "⏳ 5 segundu itxaroten, backend-a eraiki eta datu-basearekin konektatzeko..."
 sleep 5
 
-# 2. Arrancar el Cliente Frontend (Modo Servidor de Desarrollo Dinámico)
-echo "📂 [2/2] Client Frontend Garapenean abiarazten (5173 portua)..."
+# 2. Arrancar el Cliente Frontend (Modo Preview PWA)
+echo "📂 [2/2] Client Frontend PWA Preview abiarazten (4173 portua)..."
 cd "$BASE_DIR/client" || { echo "❌ Error: Ezin izan da $BASE_DIR/client direktoriora sartu"; exit 1; }
 
-# Ejecutamos en segundo plano el servidor dinámico con Vite para desarrollo en caliente
-nohup npm run dev > "$LOG_DIR/frontend.log" 2>&1 &
+# Ejecutamos en segundo plano el previsualizador del Build optimizado con Service Worker
+nohup npm run preview > "$LOG_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 echo $FRONTEND_PID > "$LOG_DIR/frontend.pid"
 
@@ -41,7 +41,8 @@ sleep 2
 echo "======================================================================="
 echo "✅ Kide aplikazioaren ekosistema abiarazi da."
 echo "======================================================================="
-echo "🌐 URL Frontend (Hot Reload):         http://localhost:5173"
-echo "🖥️  URL API Backend:                  http://localhost:3001"
-echo "📝 Erregistroak (Logs) hemen daude:   $LOG_DIR"
+echo "🌐 URL Frontend (PWA - SW):          http://localhost:4173"
+echo "🖥️  URL API Backend (Express):       http://localhost:3001"
+echo "📝 Erregistroak zuzenean:            $LOG_DIR/backend.log"
+echo "                                     $LOG_DIR/frontend.log"
 echo "======================================================================="

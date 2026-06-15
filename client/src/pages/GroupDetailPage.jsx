@@ -13,7 +13,7 @@ export default function GroupDetailPage() {
 
   const [group, setGroup]       = useState(null);
   const [expenses, setExpenses] = useState([]);
-  const [tab, setTab]           = useState('gastuak'); // 'gastuak' | 'balantzea'
+  const [tab, setTab]           = useState('gastuak'); // solo activo en móvil
   const [loading, setLoading]   = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editExpense, setEditExpense] = useState(null);
@@ -55,6 +55,9 @@ export default function GroupDetailPage() {
   if (loading) return <div className="gd-loading">Kargatzen…</div>;
   if (!group)  return <div className="gd-loading">Taldea ez da aurkitu.</div>;
 
+  const showGastuak   = tab === 'gastuak';
+  const showBalantzea = tab === 'balantzea';
+
   return (
     <div className="gd-layout">
       <header className="gd-header">
@@ -63,60 +66,70 @@ export default function GroupDetailPage() {
         <button className="btn-ghost" onClick={() => navigate(`/groups/${id}/settings`)}>⚙</button>
       </header>
 
-      <div className="gd-tabs">
+      {/* Tabs: visibles solo en móvil (d-xl-none), en escritorio se ven ambas columnas */}
+      <div className="gd-tabs d-xl-none">
         <button className={tab === 'gastuak'   ? 'tab active' : 'tab'} onClick={() => setTab('gastuak')}>Gastuak</button>
         <button className={tab === 'balantzea' ? 'tab active' : 'tab'} onClick={() => setTab('balantzea')}>Balantzea</button>
       </div>
 
-      {tab === 'gastuak' && (
-        <>
-          <div className="gd-actions">
-            <button className="btn-primary" onClick={() => { setEditExpense(null); setShowForm(true); }}>
-              + Gastua gehitu
-            </button>
-          </div>
+      {/* Grid Bootstrap: apilado en móvil, dos columnas en xl */}
+      <div className="row g-3 gd-content">
 
-          {showForm && (
-            <ExpenseForm
-              groupId={id}
-              members={group.members}
-              expense={editExpense}
-              onSaved={onExpenseSaved}
-              onCancel={() => { setShowForm(false); setEditExpense(null); }}
-            />
-          )}
+        {/* Columna izquierda: historial de gastos */}
+        <div className={`col-12 col-xl-7 ${!showGastuak ? 'd-none d-xl-block' : ''}`}>
+          <section id="gastuak" aria-label="Gastuen historia">
+            <div className="gd-actions">
+              <button className="btn-primary" onClick={() => { setEditExpense(null); setShowForm(true); }}>
+                + Gastua gehitu
+              </button>
+            </div>
 
-          {expenses.length === 0 ? (
-            <div className="gd-empty">Oraindik ez dago gasturik.</div>
-          ) : (
-            <ul className="gd-expense-list">
-              {expenses.map(e => (
-                <li key={e._id} className="gd-expense-card">
-                  <div className="gde-left">
-                    <span className="gde-desc">{e.description}</span>
-                    <span className="gde-meta">
-                      {e.paidBy?.displayName} · {new Date(e.date).toLocaleDateString('eu-ES')}
-                    </span>
-                  </div>
-                  <div className="gde-right">
-                    <span className="gde-amount">{e.amount.toFixed(2)} €</span>
-                    {e.paidBy?._id === profile?.id && (
-                      <div className="gde-actions">
-                        <button className="btn-icon" onClick={() => { setEditExpense(e); setShowForm(true); }}>✏</button>
-                        <button className="btn-icon danger" onClick={() => deleteExpense(e._id)}>✕</button>
-                      </div>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
+            {showForm && (
+              <ExpenseForm
+                groupId={id}
+                members={group.members}
+                expense={editExpense}
+                onSaved={onExpenseSaved}
+                onCancel={() => { setShowForm(false); setEditExpense(null); }}
+              />
+            )}
 
-      {tab === 'balantzea' && (
-        <Balance groupId={id} members={group.members} />
-      )}
+            {expenses.length === 0 ? (
+              <div className="gd-empty">Oraindik ez dago gasturik.</div>
+            ) : (
+              <ul className="gd-expense-list">
+                {expenses.map(e => (
+                  <li key={e._id} className="gd-expense-card">
+                    <div className="gde-left">
+                      <span className="gde-desc">{e.description}</span>
+                      <span className="gde-meta">
+                        {e.paidBy?.displayName} · {new Date(e.date).toLocaleDateString('eu-ES')}
+                      </span>
+                    </div>
+                    <div className="gde-right">
+                      <span className="gde-amount">{e.amount.toFixed(2)} €</span>
+                      {e.paidBy?._id === profile?.id && (
+                        <div className="gde-actions">
+                          <button className="btn-icon" onClick={() => { setEditExpense(e); setShowForm(true); }}>✏</button>
+                          <button className="btn-icon danger" onClick={() => deleteExpense(e._id)}>✕</button>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        {/* Columna derecha: balance financiero */}
+        <div className={`col-12 col-xl-5 ${!showBalantzea ? 'd-none d-xl-block' : ''}`}>
+          <aside id="balantzea" aria-label="Taldearen balantzea">
+            <Balance groupId={id} members={group.members} />
+          </aside>
+        </div>
+
+      </div>
     </div>
   );
 }

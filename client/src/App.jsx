@@ -7,6 +7,7 @@ import GroupListPage from './pages/GroupListPage';
 import GroupDetailPage from './pages/GroupDetailPage';
 import GroupSettingsPage from './pages/GroupSettingsPage';
 import { usePWA } from './hooks/usePWA';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
 function UpdateBanner() {
