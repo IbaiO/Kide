@@ -74,6 +74,16 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/groups', require('./routes/groups'));
 app.use('/api/expenses', require('./routes/expenses'));
 
+if (process.env.NODE_ENV === 'production') {
+  // Gaitu 'client/dist' karpetako fitxategi estatikoak zerbitzatzea
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+
+  // API-koak ez diren helbide guztiak React-en index.html-ra bideratu (React Router)
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
+}
+
 // Abiaraztea
 if (process.env.NODE_ENV === 'production') {
   try {
