@@ -231,6 +231,7 @@ router.get('/:id/optimize', async (req, res) => {
     try {
       result = await runPython(scriptPath, balanceArray);
     } catch (pyErr) {
+      console.error('ERROREA OPTIMIZAZIOA.PY EXEKUTATZEAN:', pyErr.message);
       return res.status(500).json({ error: `Errorea optimizazio motorrean: ${pyErr.message}` });
     }
 
