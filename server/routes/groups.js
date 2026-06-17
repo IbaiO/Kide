@@ -7,18 +7,15 @@ const User = require('../models/User');
 const Expense = require('../models/Expense');
 const { verifyToken } = require('../middleware/auth');
 
-// Todas las rutas de grupos requieren autenticación
 router.use(verifyToken);
 
-// ─── Helper: obtener el _id de MongoDB a partir del firebaseUid ───────────────
 async function getMongoUser(firebaseUid) {
   const user = await User.findOne({ firebaseUid }).lean();
   if (!user) throw new Error('Ez da erabiltzailea aurkitu');
   return user;
 }
 
-// ─── GET /api/groups ──────────────────────────────────────────────────────────
-// Devuelve todos los grupos en los que participa el usuario autenticado
+// GET /api/groups
 router.get('/', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
@@ -34,8 +31,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ─── POST /api/groups ─────────────────────────────────────────────────────────
-// Crea un nuevo grupo; el creador se añade automáticamente como miembro
+// POST /api/groups
 router.post('/', async (req, res) => {
   const { name, description } = req.body;
 
@@ -50,10 +46,9 @@ router.post('/', async (req, res) => {
       name,
       description: description || '',
       createdBy: user._id,
-      members: [user._id], // El creador entra como primer miembro
+      members: [user._id],
     });
 
-    // Añadir el grupo a la lista de grupos del usuario
     await User.findByIdAndUpdate(user._id, { $addToSet: { groups: newGroup._id } });
 
     return res.status(201).json(newGroup);
@@ -63,20 +58,18 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ─── GET /api/groups/:id ──────────────────────────────────────────────────────
-// Obtiene el detalle de un grupo específico, incluyendo sus miembros y gastos
+// GET /api/groups/:id
 router.get('/:id', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
-    
-    // Buscamos el grupo asegurando que el usuario sea miembro de él
+
     const group = await Group.findOne({ _id: req.params.id, members: user._id })
       .populate('members', 'displayName email photoURL')
       .populate('createdBy', 'displayName')
       .populate({
         path: 'expenses',
         populate: { path: 'paidBy', select: 'displayName photoURL' },
-        options: { sort: { date: -1 } } // ordenados por fecha descendente
+        options: { sort: { date: -1 } },
       });
 
     if (!group) {
@@ -90,10 +83,9 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ─── PUT /api/groups/:id ──────────────────────────────────────────────────────
-// Permite editar el nombre/descripción de un grupo (solo el creador)
+// PUT /api/groups/:id
 router.put('/:id', async (req, res) => {
-  const { name, description } = req.body;
+  const { name, description, photoURL } = req.body;
 
   try {
     const user = await getMongoUser(req.user.uid);
@@ -103,8 +95,9 @@ router.put('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Sortzaileak soilik aldatu dezake taldea' });
     }
 
-    if (name) group.name = name;
+    if (name)                    group.name        = name;
     if (description !== undefined) group.description = description;
+    if (photoURL !== undefined)  group.photoURL    = photoURL;
 
     await group.save();
     return res.json(group);
@@ -114,8 +107,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// ─── DELETE /api/groups/:id ───────────────────────────────────────────────────
-// Elimina un grupo y todos sus gastos asociados en cascada (solo el creador)
+// DELETE /api/groups/:id
 router.delete('/:id', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
@@ -125,16 +117,11 @@ router.delete('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Sortzaileak soilik ezabatu dezake taldea' });
     }
 
-    // 1. Eliminar todos los gastos asociados al grupo
     await Expense.deleteMany({ group: group._id });
-
-    // 2. Quitar el grupo de la lista de perfiles de todos los miembros
     await User.updateMany(
       { _id: { $in: group.members } },
       { $pull: { groups: group._id } }
     );
-
-    // 3. Eliminar el grupo
     await Group.deleteOne({ _id: group._id });
 
     return res.json({ message: 'Taldea eta gastu guztiak ezabatu dira' });
@@ -144,8 +131,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// ─── POST /api/groups/:id/members ─────────────────────────────────────────────
-// Añade un nuevo miembro al grupo buscando por su email
+// POST /api/groups/:id/members
 router.post('/:id/members', async (req, res) => {
   const { email } = req.body;
 
@@ -166,7 +152,6 @@ router.post('/:id/members', async (req, res) => {
       return res.status(404).json({ error: 'Ez dako posta elektroniko horri lotutako erabiltzailerik' });
     }
 
-    // Comprobar si ya es miembro
     if (group.members.includes(newMember._id)) {
       return res.status(400).json({ error: 'Erabiltzailea taldeko kide da dagoeneko' });
     }
@@ -182,8 +167,7 @@ router.post('/:id/members', async (req, res) => {
   }
 });
 
-// ─── DELETE /api/groups/:id/members/:userId ───────────────────────────────────
-// Elimina un miembro del grupo (solo el creador, y no puede eliminarse a sí mismo)
+// DELETE /api/groups/:id/members/:userId 
 router.delete('/:id/members/:userId', async (req, res) => {
   try {
     const requestingUser = await getMongoUser(req.user.uid);
@@ -197,7 +181,7 @@ router.delete('/:id/members/:userId', async (req, res) => {
       return res.status(400).json({ error: 'Sortzaileak ezin du taldea utzi' });
     }
 
-    group.members = group.members.filter((m) => m.toString() !== req.params.userId);
+    group.members = group.members.filter(m => m.toString() !== req.params.userId);
     await group.save();
     await User.findByIdAndUpdate(req.params.userId, { $pull: { groups: group._id } });
 
@@ -208,13 +192,11 @@ router.delete('/:id/members/:userId', async (req, res) => {
   }
 });
 
-// ─── NUEVO ENDPOINT FASE 4: GET /api/groups/:id/optimize ──────────────────────
-// Calcula los balances netos y lanza el motor PuLP en Python por stdin/stdout
+// GET /api/groups/:id/optimize
 router.get('/:id/optimize', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
 
-    // Verificamos que el usuario pertenece al grupo y traemos la info de los miembros
     const group = await Group.findOne({
       _id: req.params.id,
       members: user._id,
@@ -224,34 +206,27 @@ router.get('/:id/optimize', async (req, res) => {
       return res.status(404).json({ error: 'Ez da taldea aurkitu edo baimena falta da' });
     }
 
-    // 1. Calcular balances del grupo
     const expenses = await Expense.find({ group: req.params.id }).lean();
 
     const balance = {};
-    group.members.forEach((m) => (balance[m._id.toString()] = 0));
+    group.members.forEach(m => (balance[m._id.toString()] = 0));
 
     for (const expense of expenses) {
       const payer = expense.paidBy.toString();
-      if (balance[payer] !== undefined) {
-        balance[payer] += expense.amount;
-      }
+      if (balance[payer] !== undefined) balance[payer] += expense.amount;
       for (const split of expense.splits) {
         const participant = split.user.toString();
-        if (balance[participant] !== undefined) {
-          balance[participant] -= split.amount;
-        }
+        if (balance[participant] !== undefined) balance[participant] -= split.amount;
       }
     }
 
-    // Formateamos el array de balances para el stdin de Python
     const balanceArray = Object.entries(balance).map(([userId, net]) => ({
       userId,
       net: parseFloat(net.toFixed(2)),
     }));
 
-    // 2. Ejecutar el script de Python (PuLP)
     const scriptPath = path.resolve(__dirname, '../../python/optimizazioa.py');
-    
+
     let result;
     try {
       result = await runPython(scriptPath, balanceArray);
@@ -259,13 +234,12 @@ router.get('/:id/optimize', async (req, res) => {
       return res.status(500).json({ error: `Errorea optimizazio motorrean: ${pyErr.message}` });
     }
 
-    // 3. Mapear los IDs devueltos por Python con los nombres reales de MongoDB
     const memberMap = {};
-    group.members.forEach((m) => {
+    group.members.forEach(m => {
       memberMap[m._id.toString()] = { id: m._id, displayName: m.displayName };
     });
 
-    const transfers = result.map((t) => ({
+    const transfers = result.map(t => ({
       from:   memberMap[t.from]   || { id: t.from,   displayName: t.from },
       to:     memberMap[t.to]     || { id: t.to,     displayName: t.to },
       amount: t.amount,
@@ -278,21 +252,17 @@ router.get('/:id/optimize', async (req, res) => {
   }
 });
 
-// Helper: Función que gestiona el proceso asíncrono hijo de Python
 function runPython(scriptPath, inputData) {
   return new Promise((resolve, reject) => {
     const py = spawn('python3', [scriptPath]);
-
     let stdout = '';
     let stderr = '';
 
-    py.stdout.on('data', (data) => (stdout += data.toString()));
-    py.stderr.on('data', (data) => (stderr += data.toString()));
+    py.stdout.on('data', d => (stdout += d.toString()));
+    py.stderr.on('data', d => (stderr += d.toString()));
 
-    py.on('close', (code) => {
-      if (code !== 0) {
-        return reject(new Error(`Python-ek errore-kode hau eman du: ${code}: ${stderr}`));
-      }
+    py.on('close', code => {
+      if (code !== 0) return reject(new Error(`Python-ek errore-kode hau eman du: ${code}: ${stderr}`));
       try {
         resolve(JSON.parse(stdout));
       } catch {

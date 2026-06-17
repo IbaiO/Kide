@@ -7,6 +7,9 @@ import {
   signInWithPopup,
   signOut,
   updateProfile,
+  updatePassword,
+  EmailAuthProvider,            // Importamos para la credencial
+  reauthenticateWithCredential // Importamos para la seguridad crítica
 } from 'firebase/auth';
 import { auth, googleProvider } from '../services/firebase';
 import api from '../services/api';
@@ -18,7 +21,6 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null); // perfil en MongoDB
   const [loading, setLoading] = useState(true);
 
-  // Sincroniza el usuario de Firebase con MongoDB
   async function syncWithBackend(firebaseUser) {
     try {
       const idToken = await firebaseUser.getIdToken();
@@ -63,10 +65,30 @@ export function AuthProvider({ children }) {
     setProfile(null);
   }
 
+  async function reauthenticateUser(currentPassword) {
+    if (!auth.currentUser) throw new Error('No hay usuario autenticado');
+    if (!auth.currentUser.email) throw new Error('Proveedor no compatible');
+    
+    const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+    return reauthenticateWithCredential(auth.currentUser, credential);
+  }
+
+  async function changePassword(newPassword) {
+    if (!auth.currentUser) throw new Error('No hay ningún usuario autenticado');
+    return updatePassword(auth.currentUser, newPassword);
+  }
+
+  function updateLocalProfile(updatedUser) {
+    setProfile(prev => ({ ...prev, ...updatedUser }));
+  }
+
   return (
     <AuthContext.Provider value={{
       user, profile, loading,
       loginWithEmail, registerWithEmail, loginWithGoogle, logout,
+      reauthenticateUser,
+      changePassword,
+      updateProfile: updateLocalProfile,
     }}>
       {!loading && children}
     </AuthContext.Provider>

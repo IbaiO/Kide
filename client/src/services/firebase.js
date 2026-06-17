@@ -1,8 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 
-// Rellena estos valores con los de tu proyecto en Firebase Console
-// (Configuración del proyecto → Tus apps → SDK de Firebase)
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -12,6 +11,8 @@ const firebaseConfig = {
   appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app  = initializeApp(firebaseConfig);
-export const auth   = getAuth(app);
+const app = initializeApp(firebaseConfig);
+
+export const auth           = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+export const storage        = getStorage(app);

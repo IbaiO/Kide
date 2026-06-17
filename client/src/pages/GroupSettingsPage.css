@@ -1,3 +1,4 @@
+/* ── Estilos originales (sin cambios) ───────────────────────────── */
 .gs-loading { text-align: center; color: var(--text-2); padding: 4rem; }
 .gs-layout { max-width: 640px; margin: 0 auto; padding: 0 1rem 4rem; }
 
@@ -49,3 +50,63 @@
 .gs-danger-zone { border-color: rgba(245,101,101,0.3); }
 .gs-danger-zone h3 { color: var(--red); }
 .gs-danger-zone p { font-size: 0.85rem; color: var(--text-2); }
+
+.gs-member-avatar--photo {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: none;
+}
+
+.gs-photo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.gs-group-photo {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius);
+  object-fit: cover;
+  border: 2px solid var(--accent);
+  flex-shrink: 0;
+}
+
+.gs-group-photo-placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius);
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid transparent;
+}
+
+.gs-photo-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.gs-photo-confirm {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.gs-upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+.gs-upload-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.2s;
+}

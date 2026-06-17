@@ -1,0 +1,203 @@
+.sp-layout { max-width: 640px; margin: 0 auto; padding: 0 1rem 4rem; }
+
+.sp-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+.sp-header h2 { font-size: 1.1rem; font-weight: 600; }
+
+.sp-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.sp-section h3 {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.sp-avatar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sp-avatar-edit {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+.sp-avatar-img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent);
+}
+.sp-avatar-placeholder {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--accent);
+}
+
+.sp-avatar-change-btn {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-card);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  line-height: 1;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+.sp-avatar-change-btn:hover { opacity: 0.85; }
+
+.sp-avatar-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.sp-avatar-name { font-weight: 600; font-size: 1rem; }
+.sp-avatar-email { font-size: 0.85rem; color: var(--text-2); }
+
+.sp-photo-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sp-upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+.sp-upload-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.2s;
+}
+
+.sp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.sp-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-1);
+}
+.sp-form input, .sp-delete-confirm input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.75rem;
+  color: var(--text-1);
+  font-size: 0.9rem;
+  transition: border-color 0.15s;
+}
+.sp-form input:focus, .sp-delete-confirm input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.sp-input-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.sp-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+}
+
+.sp-feedback {
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.sp-feedback--ok {
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+.sp-feedback--error {
+  background: rgba(245, 101, 101, 0.08);
+  border: 1px solid rgba(245, 101, 101, 0.4);
+  color: var(--red);
+}
+
+.sp-danger-zone {
+  border-color: rgba(245, 101, 101, 0.3);
+}
+.sp-danger-zone h3 { color: var(--red); }
+.sp-danger-zone p {
+  font-size: 0.85rem;
+  color: var(--text-2);
+  margin: 0;
+}
+
+.sp-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.sp-delete-hint {
+  font-size: 0.88rem;
+  color: var(--text-1);
+  margin: 0;
+}
+
+.btn-danger {
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(245, 101, 101, 0.5);
+  background: rgba(245, 101, 101, 0.08);
+  color: var(--red);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-danger:hover:not(:disabled) {
+  background: rgba(245, 101, 101, 0.18);
+  border-color: var(--red);
+}
+.btn-danger:disabled { opacity: 0.45; cursor: not-allowed; }

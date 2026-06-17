@@ -8,16 +8,16 @@ export default function GroupListPage() {
   const { profile, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [groups, setGroups]     = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [showNew, setShowNew]   = useState(false);
-  const [newName, setNewName]   = useState('');
-  const [newDesc, setNewDesc]   = useState('');
-  const [creating, setCreating] = useState(false);
+  const [groups, setGroups]       = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [showForm, setShowForm]   = useState(false);
+  const [newName, setNewName]     = useState('');
+  const [newDesc, setNewDesc]     = useState('');
+  const [creating, setCreating]   = useState(false);
 
   useEffect(() => {
     api.get('/groups')
-      .then(r => setGroups(r.data))
+      .then(({ data }) => setGroups(data))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -27,9 +27,11 @@ export default function GroupListPage() {
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      const { data } = await api.post('/groups', { name: newName, description: newDesc });
+      const { data } = await api.post('/groups', { name: newName.trim(), description: newDesc.trim() });
       setGroups(prev => [data, ...prev]);
-      setNewName(''); setNewDesc(''); setShowNew(false);
+      setNewName('');
+      setNewDesc('');
+      setShowForm(false);
     } catch (err) {
       console.error(err);
     } finally {
@@ -37,74 +39,99 @@ export default function GroupListPage() {
     }
   }
 
+  function getInitials(name) {
+    if (!name) return '?';
+    return name.trim().split(' ')
+      .map(w => w[0].toUpperCase())
+      .slice(0, 2)
+      .join('');
+  }
+
   return (
-    <div className="gl-layout">
+    <main className="gl-layout">
       <header className="gl-header">
         <span className="gl-logo">kide</span>
-        <div className="gl-header-actions">
-          <span className="gl-username">{profile?.displayName}</span>
+        <header className="gl-header-actions">
+          <button
+            className="gl-avatar-btn"
+            onClick={() => navigate('/settings')}
+            title={profile?.displayName || 'Ezarpenak'}
+            aria-label="Nire ezarpenak"
+          >
+            {profile?.photoURL ? (
+              <img src={profile.photoURL} alt={profile.displayName} className="gl-avatar-img" />
+            ) : (
+              <span className="gl-avatar-initials">{getInitials(profile?.displayName)}</span>
+            )}
+          </button>
           <button className="btn-ghost" onClick={logout}>Irten</button>
-        </div>
+        </header>
       </header>
 
-      <main className="gl-main">
-        <div className="gl-top">
-          <h1>Taldeak</h1>
-          <button className="btn-primary" onClick={() => setShowNew(true)}>+ Talde berria</button>
-        </div>
+      <div className="gl-top">
+        <h1>Nire taldeak</h1>
+        <button className="btn-primary" onClick={() => setShowForm(v => !v)}>
+          {showForm ? 'Utzi' : '+ Taldea sortu'}
+        </button>
+      </div>
 
-        {/* ── Formulario de creación de grupo ── */}
-        {showNew && (
-          <section aria-label="Talde berria sortu">
-            <form className="new-group-form" onSubmit={createGroup}>
-              <input
-                autoFocus
-                placeholder="Taldearen izena"
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                required
-              />
-              <input
-                placeholder="Deskribapena (aukerakoa)"
-                value={newDesc}
-                onChange={e => setNewDesc(e.target.value)}
-              />
-              <div className="form-actions">
-                <button type="button" className="btn-ghost" onClick={() => setShowNew(false)}>Utzi</button>
-                <button type="submit" className="btn-primary" disabled={creating}>
-                  {creating ? 'Sortzen…' : 'Sortu'}
-                </button>
-              </div>
-            </form>
-          </section>
-        )}
-
-        {/* ── Listado de grupos ── */}
-        {loading ? (
-          <div className="gl-empty">Kargatzen…</div>
-        ) : groups.length === 0 ? (
-          <div className="gl-empty">
-            <p>Oraindik ez duzu talderik.</p>
-            <button className="btn-primary" onClick={() => setShowNew(true)}>Sortu lehena</button>
+      {showForm && (
+        <form className="new-group-form" onSubmit={createGroup}>
+          <input
+            type="text"
+            placeholder="Taldearen izena *"
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            required
+            autoFocus
+          />
+          <input
+            type="text"
+            placeholder="Deskribapena (aukerakoa)"
+            value={newDesc}
+            onChange={e => setNewDesc(e.target.value)}
+          />
+          <div className="form-actions">
+            <button type="button" className="btn-ghost" onClick={() => setShowForm(false)}>Utzi</button>
+            <button type="submit" className="btn-primary" disabled={creating}>
+              {creating ? 'Sortzen…' : 'Sortu'}
+            </button>
           </div>
-        ) : (
-          <ul className="gl-list">
-            {groups.map(g => (
-              <li key={g._id} className="gl-card" onClick={() => navigate(`/groups/${g._id}`)}>
-                <div className="gl-card-avatar">{g.name[0].toUpperCase()}</div>
-                <div className="gl-card-info">
-                  <span className="gl-card-name">{g.name}</span>
-                  {g.description && <span className="gl-card-desc">{g.description}</span>}
-                </div>
-                <div className="gl-card-meta">
-                  <span>{g.members?.length ?? 0} kide</span>
-                  <span className="gl-arrow">›</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </main>
-    </div>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="gl-empty"><span>Kargatzen…</span></div>
+      ) : groups.length === 0 ? (
+        <div className="gl-empty">
+          <span>Oraindik ez dago talderik.</span>
+          <button className="btn-primary" onClick={() => setShowForm(true)}>Sortu lehena</button>
+        </div>
+      ) : (
+        <ul className="gl-list">
+          {groups.map(g => (
+            <li key={g._id} className="gl-card" onClick={() => navigate(`/groups/${g._id}`)}>
+              <div className="gl-card-avatar" style={g.photoURL ? { 
+                  backgroundImage: `url(${g.photoURL})`, 
+                  backgroundSize: 'cover', 
+                  backgroundPosition: 'center',
+                  color: 'transparent' 
+                } : {}}
+              >
+                {!g.photoURL && g.name[0].toUpperCase()}
+              </div>
+              <div className="gl-card-info">
+                <span className="gl-card-name">{g.name}</span>
+                {g.description && <span className="gl-card-desc">{g.description}</span>}
+              </div>
+              <div className="gl-card-meta">
+                <span>{g.members?.length ?? 0} kide</span>
+                <span className="gl-arrow">›</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
   );
 }

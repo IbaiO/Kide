@@ -1,11 +1,11 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './LoginPage.css';
 
 export default function LoginPage() {
-  const { loginWithEmail, registerWithEmail, loginWithGoogle } = useAuth();
+  const { loginWithEmail, registerWithEmail, loginWithGoogle, profile } = useAuth();
   const navigate = useNavigate();
 
   const [mode, setMode]           = useState('login'); // 'login' | 'register'
@@ -14,8 +14,14 @@ export default function LoginPage() {
   const [name, setName]           = useState('');
   const [error, setError]         = useState('');
   const [loading, setLoading]     = useState(false);
-  // Guarda qué campo está activo para aplicar el estilo de foco
   const [focusedField, setFocusedField] = useState(null);
+
+  // GroupListPage-ra bideratu erabiltzailea dagoeneko autentifikatuta badago
+  useEffect(() => {
+    if (profile) {
+      navigate('/', { replace: true });
+    }
+  }, [profile, navigate]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -45,17 +51,16 @@ export default function LoginPage() {
     }
   }
 
-  // Devuelve las clases del input según si está enfocado o no
   function inputClass(fieldName) {
     return focusedField === fieldName ? 'input-focused' : '';
   }
 
   return (
-    <div className="login-bg">
-      <div className="login-card">
+    <main className="login-bg">
+      <section className="login-card">
         <div className="login-header">
           <span className="login-logo">kide</span>
-          <p className="login-tagline">Gastuak taldean, arazorik gabe.</p>
+          <p className="login-tagline">Lagun artean, kontuak garbi.</p>
         </div>
 
         <div className="login-tabs">
@@ -114,8 +119,8 @@ export default function LoginPage() {
           <GoogleIcon />
           Google-rekin sartu
         </button>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
 
@@ -134,9 +139,10 @@ function friendlyError(code) {
   const map = {
     'auth/user-not-found':       'Ez da aurkitu erabiltzailerik email horrekin.',
     'auth/wrong-password':       'Pasahitz okerra.',
-    'auth/email-already-in-use': 'Email horrekin lotutako kontu bat existitzen da..',
+    'auth/email-already-in-use': 'Email horrekin lotutako kontu bat existitzen da.',
     'auth/weak-password':        'Pasahitzak gutxienez 6 karaktere behar ditu.',
     'auth/invalid-email':        'Email helbide baliogabea.',
+    'auth/invalid-credential':   'Email edo pasahitza ez da zuzena.',
   };
   return map[code] || 'Errore bat gertatu da. Saiatu berriro.';
 }

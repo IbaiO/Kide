@@ -1,10 +1,6 @@
 const admin = require('../config/firebase');
 
-/**
- * Middleware que protege rutas privadas.
- * El cliente debe enviar en la cabecera: Authorization: Bearer <idToken>
- * Firebase verifica la firma del token; si es válido, adjunta el usuario a req.
- */
+// Ruta pribatuak babesteko Middleware-a.
 async function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
 

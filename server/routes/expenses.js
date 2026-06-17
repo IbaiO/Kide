@@ -9,63 +9,62 @@ const { calculateSplits } = require('../utils/splits');
 
 router.use(verifyToken);
 
-// ─── Middleware reutilizable: corta la cadena si hay errores de validación ────
+// Middleware berrerabilgarria: balidazio erroreak badaude, katea eten
 function handleValidation(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    // Devolvemos solo el primer mensaje de error para mantener respuestas limpias
     return res.status(400).json({ error: errors.array()[0].msg });
   }
   next();
 }
 
-// ─── Reglas de validación compartidas (POST y PUT comparten descripción/amount) ─
+// Balidazio arau partekatuak (POST eta PUT)
 const descriptionRules = body('description')
-  .if(body('description').exists()) // en PUT el campo es opcional
+  .if(body('description').exists())
   .trim()
   .notEmpty()
-  .withMessage('El concepto del gasto no puede estar vacío');
+  .withMessage('Gastuaren kontzeptua ezin da hutsik egon');
 
 const amountRules = body('amount')
-  .if(body('amount').exists()) // en PUT el campo es opcional
+  .if(body('amount').exists())
   .isFloat({ gt: 0 })
-  .withMessage('El importe debe ser un número mayor que 0');
+  .withMessage('Zenbatekoa 0 baino handiagoa behar da');
 
 const splitTypeRules = body('splitType')
   .optional()
   .isIn(['equal', 'percentage', 'exact'])
-  .withMessage("El tipo de reparto debe ser 'equal', 'percentage' o 'exact'");
+  .withMessage("Banaketa mota 'equal', 'percentage' edo 'exact' izan behar da");
 
-// ─── Reglas exclusivas del POST (campos obligatorios) ────────────────────────
+// POSTerako arauak
 const createExpenseRules = [
   body('groupId')
     .notEmpty()
-    .withMessage('El groupId es obligatorio')
+    .withMessage('groupId nahitaezkoa da')
     .isMongoId()
-    .withMessage('El groupId no tiene un formato válido'),
+    .withMessage('groupId-k ez dauka formatu egokia'),
   body('description')
     .trim()
     .notEmpty()
-    .withMessage('El concepto del gasto no puede estar vacío'),
+    .withMessage('Gastuaren kontzeptua ezin da hutsik egon'),
   body('amount')
     .notEmpty()
-    .withMessage('El importe es obligatorio')
+    .withMessage('Zenbatekoa nahitaezkoa da')
     .isFloat({ gt: 0 })
-    .withMessage('El importe debe ser un número mayor que 0'),
+    .withMessage('Zenbatekoa 0 baino handiagoa behar da'),
   splitTypeRules,
 ];
 
-// ─── Reglas exclusivas del PUT (todos los campos son opcionales) ──────────────
+// PUTerako arauak (Denak aukerazkoak)
 const updateExpenseRules = [
   param('id')
     .isMongoId()
-    .withMessage('El id del gasto no tiene un formato válido'),
+    .withMessage('Gastuaren ID-ak ez dauka formatu egokia'),
   descriptionRules,
   amountRules,
   splitTypeRules,
 ];
 
-// ─── Helpers internos ────────────────────────────────────────────────────────
+// Barne helper-ak
 async function getMongoUser(firebaseUid) {
   const user = await User.findOne({ firebaseUid }).lean();
   if (!user) throw new Error('Ez da erabiltzailea aurkitu');
@@ -78,7 +77,7 @@ async function assertMember(groupId, userId) {
   return group;
 }
 
-// ─── GET /api/expenses/group/:groupId ─────────────────────────────────────────
+// GET /api/expenses/group/:groupId
 router.get('/group/:groupId', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
@@ -97,9 +96,8 @@ router.get('/group/:groupId', async (req, res) => {
   }
 });
 
-// ─── POST /api/expenses ───────────────────────────────────────────────────────
-// Crea un nuevo gasto
-//
+// POST /api/expenses
+// Gastu berri bat sortu
 // Body:
 // {
 //   groupId:       string  (obligatorio, MongoId válido)
@@ -145,7 +143,7 @@ router.post('/', createExpenseRules, handleValidation, async (req, res) => {
   }
 });
 
-// ─── GET /api/expenses/:id ────────────────────────────────────────────────────
+// GET /api/expenses/:id
 router.get('/:id', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
@@ -154,7 +152,7 @@ router.get('/:id', async (req, res) => {
       .populate('splits.user', 'displayName')
       .lean();
 
-    if (!expense) return res.status(404).json({ error: 'Gasto no encontrado' });
+    if (!expense) return res.status(404).json({ error: 'Ez da gastua aurkitu' });
 
     await assertMember(expense.group, user._id);
 
@@ -165,8 +163,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ─── PUT /api/expenses/:id ────────────────────────────────────────────────────
-// Edita un gasto (solo quien lo creó)
+// PUT /api/expenses/:id
+// Gastu bat eguneratu
 router.put('/:id', updateExpenseRules, handleValidation, async (req, res) => {
   const { description, amount, date, splitType, participants } = req.body;
 
@@ -175,7 +173,7 @@ router.put('/:id', updateExpenseRules, handleValidation, async (req, res) => {
     const expense = await Expense.findOne({ _id: req.params.id, paidBy: user._id });
 
     if (!expense) {
-      return res.status(403).json({ error: 'Solo quien pagó puede editar este gasto' });
+      return res.status(403).json({ error: 'Ordaindu duenak soilik aldatu dezake gastua' });
     }
 
     const newAmount = amount ? parseFloat(amount) : expense.amount;
@@ -209,25 +207,25 @@ router.put('/:id', updateExpenseRules, handleValidation, async (req, res) => {
   }
 });
 
-// ─── DELETE /api/expenses/:id ─────────────────────────────────────────────────
+// DELETE /api/expenses/:id
 router.delete('/:id', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
     const expense = await Expense.findOne({ _id: req.params.id, paidBy: user._id });
 
     if (!expense) {
-      return res.status(403).json({ error: 'Solo quien pagó puede eliminar este gasto' });
+      return res.status(403).json({ error: 'Ordaindu duenak soilik ezabatu dezake gastua' });
     }
 
     await expense.deleteOne();
-    return res.json({ message: 'Gasto eliminado correctamente' });
+    return res.json({ message: 'Gastua ezanatu da' });
   } catch (err) {
     console.error('DELETE /expenses/:id:', err.message);
     return res.status(500).json({ error: err.message });
   }
 });
 
-// ─── GET /api/expenses/group/:groupId/balance ──────────────────────────────────
+// GET /api/expenses/group/:groupId/balance
 router.get('/group/:groupId/balance', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);

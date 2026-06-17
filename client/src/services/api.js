@@ -6,7 +6,6 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Inyecta el idToken de Firebase en cada petición automáticamente
 api.interceptors.request.use(async (config) => {
   const user = auth.currentUser;
   if (user) {

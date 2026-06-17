@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -13,10 +13,13 @@ export default function GroupDetailPage() {
 
   const [group, setGroup]       = useState(null);
   const [expenses, setExpenses] = useState([]);
-  const [tab, setTab]           = useState('gastuak'); // solo activo en móvil
+  const [tab, setTab]           = useState('gastuak'); // Mobiletan erabiltzeko
   const [loading, setLoading]   = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editExpense, setEditExpense] = useState(null);
+
+  const [balanceVersion, setBalanceVersion] = useState(0);
+  const refreshBalance = useCallback(() => setBalanceVersion(v => v + 1), []);
 
   async function loadGroup() {
     try {
@@ -32,11 +35,13 @@ export default function GroupDetailPage() {
 
   useEffect(() => { loadGroup(); }, [id]);
 
-  async function deleteExpense(expenseId) {
+  async function deleteExpense(e, expenseId) {
+    e.stopPropagation();
     if (!confirm('Gastua ezabatu nahi duzu?')) return;
     try {
       await api.delete(`/expenses/${expenseId}`);
-      setExpenses(prev => prev.filter(e => e._id !== expenseId));
+      setExpenses(prev => prev.filter(ex => ex._id !== expenseId));
+      refreshBalance();
     } catch (err) {
       console.error(err);
     }
@@ -50,6 +55,7 @@ export default function GroupDetailPage() {
     }
     setShowForm(false);
     setEditExpense(null);
+    refreshBalance();
   }
 
   if (loading) return <div className="gd-loading">Kargatzen…</div>;
@@ -59,23 +65,22 @@ export default function GroupDetailPage() {
   const showBalantzea = tab === 'balantzea';
 
   return (
-    <div className="gd-layout">
+    <main className="gd-layout">
       <header className="gd-header">
         <button className="btn-ghost" onClick={() => navigate('/')}>‹ Atzera</button>
         <h2 className="gd-title">{group.name}</h2>
         <button className="btn-ghost" onClick={() => navigate(`/groups/${id}/settings`)}>⚙</button>
       </header>
 
-      {/* Tabs: visibles solo en móvil (d-xl-none), en escritorio se ven ambas columnas */}
+      {/* Tabs: Mobiletan, bi zutabeak banatzen dira */}
       <div className="gd-tabs d-xl-none">
         <button className={tab === 'gastuak'   ? 'tab active' : 'tab'} onClick={() => setTab('gastuak')}>Gastuak</button>
         <button className={tab === 'balantzea' ? 'tab active' : 'tab'} onClick={() => setTab('balantzea')}>Balantzea</button>
       </div>
 
-      {/* Grid Bootstrap: apilado en móvil, dos columnas en xl */}
       <div className="row g-3 gd-content">
 
-        {/* Columna izquierda: historial de gastos */}
+        {/* Ezker zutabea: Gastuen zerrenda */}
         <div className={`col-12 col-xl-7 ${!showGastuak ? 'd-none d-xl-block' : ''}`}>
           <section id="gastuak" aria-label="Gastuen historia">
             <div className="gd-actions">
@@ -110,8 +115,8 @@ export default function GroupDetailPage() {
                       <span className="gde-amount">{e.amount.toFixed(2)} €</span>
                       {e.paidBy?._id === profile?.id && (
                         <div className="gde-actions">
-                          <button className="btn-icon" onClick={() => { setEditExpense(e); setShowForm(true); }}>✏</button>
-                          <button className="btn-icon danger" onClick={() => deleteExpense(e._id)}>✕</button>
+                          <button className="btn-icon" onClick={ev => { ev.stopPropagation(); setEditExpense(e); setShowForm(true); }}>✏</button>
+                       <button className="btn-icon danger" onClick={ev => deleteExpense(ev, e._id)}>✕</button>
                         </div>
                       )}
                     </div>
@@ -122,14 +127,14 @@ export default function GroupDetailPage() {
           </section>
         </div>
 
-        {/* Columna derecha: balance financiero */}
+        {/* Eskuin zutabea: Balantzzeak */}
         <div className={`col-12 col-xl-5 ${!showBalantzea ? 'd-none d-xl-block' : ''}`}>
           <aside id="balantzea" aria-label="Taldearen balantzea">
-            <Balance groupId={id} members={group.members} />
+            <Balance groupId={id} members={group.members} version={balanceVersion} />
           </aside>
         </div>
 
       </div>
-    </div>
+    </main>
   );
 }

@@ -7,16 +7,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      // El SW se genera automáticamente — no hace falta un sw.js manual
+      // SW automatikoki sortu
       workbox: {
-        // Cachea todos los assets del build
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // Rutas de navegación (SPA): sirve siempre index.html offline
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/], // las llamadas API nunca usan el fallback
         runtimeCaching: [
           {
-            // Cache-first para Google Fonts
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
             handler: 'CacheFirst',
             options: {
@@ -26,8 +23,6 @@ export default defineConfig({
             },
           },
           {
-            // Network-first para las llamadas a la API
-            // Si hay red, datos frescos; si no, sirve la última respuesta cacheada
             urlPattern: /^https?:\/\/.*\/api\//,
             handler: 'NetworkFirst',
             options: {
@@ -39,11 +34,10 @@ export default defineConfig({
           },
         ],
       },
-      // Metadatos del manifest (hace que la app sea instalable como PWA)
       manifest: {
         name: 'Kide — Gastuak taldean',
         short_name: 'Kide',
-        description: 'Gastuak taldean, arazorik gabe.',
+        description: 'Lagun artean, kontuak garbi.',
         theme_color: '#7c6af7',
         background_color: '#0f0f11',
         display: 'standalone',

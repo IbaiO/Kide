@@ -1,6 +1,5 @@
 const admin = require('firebase-admin');
 
-// Evita inicializar más de una vez si el módulo se requiere varias veces
 if (!admin.apps.length) {
   const serviceAccount = require('./firebase-config.json');
 

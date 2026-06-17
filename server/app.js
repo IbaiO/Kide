@@ -11,26 +11,25 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const MONGO_URI = process.env.MONGO_URI;
 
-// ─── Conexión a MongoDB ───────────────────────────────────────────────────────
+// MongoDB-ra konektatu
 mongoose
   .connect(MONGO_URI)
-  .then(() => console.log('✅ Conectado a MongoDB'))
+  .then(() => console.log('MongoDB-ra konektata!'))
   .catch((err) => {
-    console.error('❌ Error al conectar a MongoDB:', err.message);
+    console.error('Errorea MongoDB-ra konektatzean:', err.message);
     process.exit(1);
   });
 
-// ─── Middleware ───────────────────────────────────────────────────────────────
+// Middleware
 const allowedOrigins = [
-  'http://localhost:3000', // Puerto por defecto clásico
-  'http://localhost:5173', // Puerto de Vite en modo desarrollo (npm run dev)
-  'http://localhost:4173', // Puerto de Vite en modo PWA Preview (el de tus nuevos scripts)
-  process.env.CLIENT_ORIGIN // Tu futuro dominio .eus en producción
-].filter(Boolean); // Limpia valores vacíos si CLIENT_ORIGIN no está definido aún
+  'http://localhost:3000', // Portu lehenetsia
+  'http://localhost:5173', // Vite-ren portua garapen moduan (npm run dev)
+  'http://localhost:4173', // Vite-ren portua PWA Preview moduan
+  process.env.CLIENT_ORIGIN // .eus domeinua (Prozesuan)
+].filter(Boolean); // Balio hutsak garbitzen ditu CLIENT_ORIGIN definituta ez badago
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Permitir peticiones sin origen (como Postman o Server-to-Server) o si están en la lista
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -43,7 +42,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ─── Sesiones persistidas en MongoDB ─────────────────────────────────────────
+// MongoDB-n saio iraunkorrak
 app.use(session({
   secret: process.env.SESSION_SECRET || 'kide-dev-secret',
   resave: false,
@@ -60,8 +59,7 @@ app.use(session({
   },
 }));
 
-// ─── Rutas ────────────────────────────────────────────────────────────────────
-// Ruta de salud — útil para comprobar que el servidor responde
+// Routes
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -74,7 +72,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/groups', require('./routes/groups'));
 app.use('/api/expenses', require('./routes/expenses'));
 
-// ─── Arranque ─────────────────────────────────────────────────────────────────
+// Abiaraztea
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor Kide escuchando en http://localhost:${PORT}`);
+  console.log(`Kide zerbitzaria http://localhost:${PORT} helbidean entzuten`);
 });

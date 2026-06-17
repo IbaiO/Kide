@@ -10,7 +10,31 @@
 }
 .gl-logo { font-size: 1.4rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
 .gl-header-actions { display: flex; align-items: center; gap: 0.75rem; }
-.gl-username { color: var(--text-2); font-size: 0.85rem; }
+
+.gl-avatar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--accent-glow);
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s, transform 0.15s;
+  flex-shrink: 0;
+}
+.gl-avatar-btn:hover { opacity: 0.85; transform: scale(1.05); }
+.gl-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.gl-avatar-initials {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  user-select: none;
+}
 
 .gl-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
 .gl-top h1 { font-size: 1.4rem; font-weight: 600; }

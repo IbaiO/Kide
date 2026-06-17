@@ -65,8 +65,8 @@ def balantzea(opZer):
 
 def matrix_to_transfers(result):
     """
-    Convierte la x_matrix de optimizazioa() en una lista de transferencias
-    con el formato que espera Node:
+    x_matrix -> Transferentzia-zerrenda
+    Formatua:
         [{ "from": userId, "to": userId, "amount": float }, ...]
     """
     users = result['users']
@@ -85,19 +85,11 @@ def matrix_to_transfers(result):
  
  
 if __name__ == '__main__':
-    """
-    Entrada por stdin: JSON con el balance neto de cada miembro.
-    Formato que envía Node desde /api/groups/:id/optimize:
-        [{ "userId": "abc123", "net": -15.00 }, ...]
- 
-    Salida por stdout: lista de transferencias en JSON.
-        [{ "from": "abc123", "to": "def456", "amount": 15.00 }, ...]
-    """
     try:
         raw = sys.stdin.read()
         balance_array = json.loads(raw)
  
-        # Convertimos el array de { userId, net } al dict que espera optimizazioa()
+        # array({ userId, net }) -> dict
         balantz = {entry['userId']: entry['net'] for entry in balance_array}
  
         result = optimizazioa(balantz)

@@ -1,10 +1,9 @@
 const mongoose = require('mongoose');
 
-// Firebase gestiona email, password y proveedor (Google, etc.)
-// Este modelo guarda solo los datos extra que necesita Kide
+// Firebase bidez kudeatzen dira email, password eta hornitzaileak (Google, etab.)
+// Modelo honek app-ak behar dituen beste datuak tratatzen ditu
 const userSchema = new mongoose.Schema(
   {
-    // uid de Firebase — es la clave que une ambos sistemas
     firebaseUid: {
       type: String,
       required: true,
@@ -26,7 +25,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    // IDs de los grupos a los que pertenece el usuario
+    themeMode: {
+      type: String,
+      enum: ['light', 'dark', 'auto'],
+      default: 'auto',
+    },
+    accentColor: {
+      type: String,
+      enum: ['purple', 'green', 'orange', 'blue', 'red', 'pink', 'cyan', 'teal', 'lime', 'yellow'],
+      default: 'purple',
+    },
     groups: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -35,7 +43,7 @@ const userSchema = new mongoose.Schema(
     ],
   },
   {
-    timestamps: true, // añade createdAt y updatedAt automáticamente
+    timestamps: true, // createdAt y updatedAt automatikoki gehitu
   }
 );
 

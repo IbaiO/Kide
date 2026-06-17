@@ -12,13 +12,15 @@ const groupSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
-    // El usuario que creó el grupo
+    photoURL: {
+      type: String,
+      default: null,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    // Miembros del grupo — siempre incluye al creador
     members: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -28,14 +30,11 @@ const groupSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    // Campo virtual: los gastos se consultan desde Expense, no se embeben aquí
-    // Así evitamos documentos enormes y facilitamos el CRUD de gastos
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
 );
 
-// Virtual: permite hacer group.expenses en el servidor sin almacenarlos en el doc
 groupSchema.virtual('expenses', {
   ref: 'Expense',
   localField: '_id',
