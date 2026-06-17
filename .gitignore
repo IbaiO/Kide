@@ -10,6 +10,7 @@ server/config/firebase-config.json
 # Logs
 *.log
 npm-debug.log*
+*.pid
 
 # OS
 .DS_Store

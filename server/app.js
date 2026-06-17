@@ -1,4 +1,7 @@
 const path = require('path');
+const fs = require('fs');
+const https = require('https');
+const http = require('http');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const express = require('express');
@@ -67,12 +70,38 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-
 app.use('/api/users', require('./routes/users'));
 app.use('/api/groups', require('./routes/groups'));
 app.use('/api/expenses', require('./routes/expenses'));
 
 // Abiaraztea
-app.listen(PORT, () => {
-  console.log(`Kide zerbitzaria http://localhost:${PORT} helbidean entzuten`);
-});
+if (process.env.NODE_ENV === 'production') {
+  try {
+    const privateKey = fs.readFileSync('/etc/letsencrypt/live/kideapp.eus/privkey.pem', 'utf8');
+    const certificate = fs.readFileSync('/etc/letsencrypt/live/kideapp.eus/fullchain.pem', 'utf8');
+    const credentials = { key: privateKey, cert: certificate };
+
+    const httpsServer = https.createServer(credentials, app);
+    httpsServer.listen(443, () => {
+      console.log('HTTPS zerbitzaria abian 443 portuan (https://kideapp.eus)');
+    });
+
+    http.createServer((req, res) => {
+      res.writeHead(301, { "Location": "https://" + req.headers['host'] + req.url });
+      res.end();
+    }).listen(80, () => {
+      console.log('HTTP bideratzea aktibo 80 portuan');
+    });
+
+  } catch (err) {
+    console.error('Errorea HTTPS zerbitzaria abiaraztean, HTTP-ra itzultzen:', err.message);
+    
+    app.listen(PORT, () => {
+      console.log(`Kide zerbitzaria http://localhost:${PORT} helbidean entzuten`);
+    });
+  }
+} else {
+  app.listen(PORT, () => {
+    console.log(`Kide zerbitzaria http://localhost:${PORT} helbidean entzuten`);
+  });
+}
