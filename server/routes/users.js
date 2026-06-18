@@ -102,4 +102,33 @@ router.put('/profile', verifyToken, async (req, res) => {
   }
 });
 
+// DELETE /api/users/me
+// Ezabatu erabiltzailea eta bere informazioa
+router.delete('/me', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findOne({ firebaseUid: req.user.uid });
+    if (!user) return res.status(404).json({ error: 'Ez da erabiltzailea aurkitu' });
+
+    // Taldeetatik atera
+    await Group.updateMany(
+      { members: user._id },
+      { $pull: { members: user._id } }
+    );
+
+    // Gastuak ezabatu (edo anonimatu)
+    await Expense.deleteMany({ paidBy: user._id });
+    
+    // Erabiltzailea ezabatu
+    await User.deleteOne({ _id: user._id });
+
+    // Saioa itxi
+    req.session.destroy();
+
+    return res.json({ message: 'Kontua ongi ezabatu da' });
+  } catch (err) {
+    console.error('Errorea DELETE /users/me egitean:', err.message);
+    return res.status(500).json({ error: 'Errorea kontua ezabatzean' });
+  }
+});
+
 module.exports = router;
