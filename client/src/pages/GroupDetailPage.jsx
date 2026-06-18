@@ -53,7 +53,7 @@ export default function GroupDetailPage() {
     if (!expenseToDelete) return;
     const expenseId = expenseToDelete._id;
     try {
-      await api.delete(`/expenses/${expenseId}`);
+      await api.delete('/expenses/' + expenseId);
       setExpenses(prev => prev.filter(ex => ex._id !== expenseId));
       refreshBalance();
     } catch (err) {
@@ -141,13 +141,6 @@ export default function GroupDetailPage() {
         <button className="btn-ghost" onClick={() => navigate('/')}>‹ Atzera</button>
         <h2 className="gd-title">{group.name}</h2>
         <div className="gd-header-actions">
-          <button
-            className="btn-ghost"
-            title="Kidea gehitu"
-            onClick={() => setShowAddMember(v => !v)}
-          >
-            + Kidea gehitu
-          </button>
           <button className="btn-ghost" onClick={() => navigate(`/groups/${id}/settings`)}>⚙</button>
         </div>
       </header>
@@ -181,6 +174,12 @@ export default function GroupDetailPage() {
         <div className={`col-12 col-xl-7 ${!showGastuak ? 'd-none d-xl-block' : ''}`}>
           <section id="gastuak" aria-label="Gastuen historia">
             <div className="gd-actions">
+              <button
+                className="btn-primary btn-member-accent"
+                onClick={() => setShowAddMember(v => !v)}
+              >
+                {showAddMember ? 'Utzi' : '+ Kidea gehitu'}
+              </button>
               <button className="btn-primary" onClick={() => { setEditExpense(null); setShowForm(true); }}>
                 + Gastua gehitu
               </button>
