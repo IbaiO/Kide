@@ -5,6 +5,7 @@ import { storage } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import './GroupSettingsPage.css';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 function validateImageFile(file) {
   if (!file) return null;
@@ -30,6 +31,15 @@ export default function GroupSettingsPage() {
   const [photoPreview, setPhotoPreview]     = useState(null);
   const [uploadProgress, setUploadProgress] = useState(null);
   const photoInputRef = useRef(null);
+
+  const [leaving, setLeaving] = useState(false);
+
+  const [confirmation, setConfirmation] = useState({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: null
+  });
 
   useEffect(() => {
     api.get(`/groups/${id}`)
@@ -134,30 +144,69 @@ export default function GroupSettingsPage() {
   }
 
   async function removeMember(userId) {
-    if (!confirm('Kidea taldeetik kendu nahi duzu?')) return;
-    try {
-      await api.delete(`/groups/${id}/members/${userId}`);
-      setGroup(prev => ({
-        ...prev,
-        members: prev.members.filter(m => m._id !== userId),
-      }));
-    } catch (err) {
-      setFeedback(err.response?.data?.error || 'Errore bat gertatu da.');
-      setTimeout(() => setFeedback(''), 3000);
-    }
+    setConfirmation({
+      show: true,
+      title: 'Kidea kendu',
+      message: 'Kidea taldeetik kendu nahi duzu?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/groups/${id}/members/${userId}`);
+          setGroup(prev => ({
+            ...prev,
+            members: prev.members.filter(m => m._id !== userId),
+          }));
+          setConfirmation(prev => ({ ...prev, show: false }));
+        } catch (err) {
+          setFeedback(err.response?.data?.error || 'Errore bat gertatu da.');
+          setConfirmation(prev => ({ ...prev, show: false }));
+        }
+      }
+    });
   }
 
   async function deleteGroup() {
-    if (!confirm(`"${group.name}" taldea betiko ezabatu nahi duzu? Gasto guztiak galduko dira.`)) return;
-    try {
-      await api.delete(`/groups/${id}`);
-      navigate('/');
-    } catch {
-      setFeedback('Ezin izan da taldea ezabatu.');
-    }
+    setConfirmation({
+      show: true,
+      title: 'Taldea ezabatu',
+      message: `"${group.name}" taldea betiko ezabatu nahi duzu? Gasto guztiak galduko dira.`,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/groups/${id}`);
+          navigate('/groups');
+        } catch {
+          setFeedback('Ezin izan da taldea ezabatu.');
+          setConfirmation(prev => ({ ...prev, show: false }));
+        }
+      }
+    });
   }
 
   const isCreator = profile?.id === group?.createdBy?._id || profile?.id === group?.createdBy;
+
+  async function leaveGroup() {
+    const isLastMember = group?.members?.length === 1;
+
+    setConfirmation({
+      show: true,
+      title: 'Taldea utzi',
+      message: isCreator
+        ? (isLastMember 
+            ? 'Azken taldekidea zara. Taldea utziz gero, talde hau eta bere gastu guztiak betiko ezabatuko dira. Ziur zaude?'
+            : 'Ziur zaude taldea utzi nahi duzula? Jabetza automatikoki beste kide bati pasatuko zaio.')
+        : 'Ziur zaude taldea utzi nahi duzula? Zure gastuen historiala mantendu egingo da.',
+      onConfirm: async () => {
+        try {
+          setLeaving(true);
+          await api.post(`/groups/${id}/leave`);
+          navigate('/groups');
+        } catch (err) {
+          setFeedback(err.response?.data?.error || 'Ezin izan da taldea utzi.');
+          setConfirmation(prev => ({ ...prev, show: false }));
+          setLeaving(false);
+        }
+      }
+    });
+  }
 
   if (loading) return <div className="gs-loading">Kargatzen…</div>;
   if (!group)  return <div className="gs-loading">Taldea ez da aurkitu.</div>;
@@ -176,7 +225,6 @@ export default function GroupSettingsPage() {
           <h3>Taldearen argazkia</h3>
 
           <div className="gs-photo-wrap">
-            {/* Avatar actual o placeholder con inicial */}
             {photoPreview ? (
               <img src={photoPreview} alt={group.name} className="gs-group-photo" />
             ) : (
@@ -193,12 +241,10 @@ export default function GroupSettingsPage() {
               >
                 Argazkia aukeratu
               </button>
-              {/* input bat capture="environment" erabiliz, mobilen kamera detektatzeko */}
               <input
                 ref={photoInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 style={{ display: 'none' }}
                 onChange={handlePhotoSelected}
               />
@@ -284,12 +330,40 @@ export default function GroupSettingsPage() {
       </section>
 
       {isCreator && (
+        <section className="gs-section" aria-label="Taldea utzi">
+          <h3>Taldea utzi</h3>
+          <p>Taldea utziz gero, jabetza beste kide bati pasatuko zaio eta ez duzu taldea gehiago ikusiko. Zure gastu historikoak mantenduko dira balantzea zuzena izan dadin.</p>
+          <button className="btn-outline-secondary" onClick={leaveGroup} disabled={leaving}>
+            {leaving ? 'Uzten…' : 'Taldea utzi'}
+          </button>
+        </section>
+      )}
+
+      {isCreator && (
         <section className="gs-section gs-danger-zone" aria-label="Taldea ezabatu">
           <h3>ADI!</h3>
           <p>Taldea ezabatuz gero, gastu guztiak betiko galduko dira.</p>
           <button className="btn-danger" onClick={deleteGroup}>Taldea ezabatu</button>
         </section>
       )}
+
+      {!isCreator && (
+        <section className="gs-section" aria-label="Taldea utzi">
+          <h3>Taldea utzi</h3>
+          <p>Taldea utziz gero, ez duzu gehiago ikusiko. Zure gastu historikoak mantenduko dira balantzea zuzena izan dadin.</p>
+          <button className="btn-outline-secondary" onClick={leaveGroup} disabled={leaving}>
+            {leaving ? 'Uzten…' : 'Taldea utzi'}
+          </button>
+        </section>
+      )}
+
+      <ConfirmationModal
+        show={confirmation.show}
+        title={confirmation.title}
+        message={confirmation.message}
+        onConfirm={confirmation.onConfirm}
+        onCancel={() => setConfirmation(prev => ({ ...prev, show: false }))}
+      />
     </main>
   );
 }

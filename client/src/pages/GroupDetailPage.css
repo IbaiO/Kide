@@ -19,6 +19,25 @@
 }
 .gd-title { font-size: 1.1rem; font-weight: 600; }
 
+.gd-header-actions { display: flex; align-items: center; gap: 0.35rem; }
+
+.gd-member-feedback {
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.gd-add-member {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.gd-add-member input { flex: 1; }
+
 .gd-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
 
 .gd-content { padding-top: 1.25rem; }

@@ -1,0 +1,87 @@
+.modal-dialog:has(~ .modal-backdrop) {
+  opacity: 0.6;
+  filter: grayscale(0.5) blur(2px);
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.edm-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.edm-header,
+.edm-footer {
+  border-color: var(--border);
+}
+
+.edm-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.edm-amount {
+  font-family: 'DM Mono', monospace;
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.edm-splittype {
+  color: var(--text-2);
+  font-size: 0.85rem;
+}
+
+.edm-meta {
+  margin: 0 0 1.25rem;
+}
+
+.edm-meta-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.edm-meta-row dt {
+  color: var(--text-2);
+  font-weight: 400;
+}
+
+.edm-meta-row dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+.edm-splits-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-2);
+  margin-bottom: 0.5rem;
+}
+
+.edm-splits-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+}
+
+.edm-split-row {
+  display: flex;
+  justify-content: space-between;
+  background: var(--bg-hover);
+  border-radius: calc(var(--radius) - 4px);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.edm-split-amount {
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+}

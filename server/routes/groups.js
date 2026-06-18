@@ -44,12 +44,14 @@ router.post('/', async (req, res) => {
 
     const newGroup = await Group.create({
       name,
-      description: description || '',
+      description,
       createdBy: user._id,
-      members: [user._id],
+      members: [user._id]
     });
 
-    await User.findByIdAndUpdate(user._id, { $addToSet: { groups: newGroup._id } });
+    await User.findByIdAndUpdate(user._id, {
+      $push: { groups: newGroup._id }
+    });
 
     return res.status(201).json(newGroup);
   } catch (err) {
@@ -65,16 +67,16 @@ router.get('/:id', async (req, res) => {
 
     const group = await Group.findOne({ _id: req.params.id, members: user._id })
       .populate('members', 'displayName email photoURL')
-      .populate('createdBy', 'displayName')
       .populate({
         path: 'expenses',
-        populate: { path: 'paidBy', select: 'displayName photoURL' },
-        options: { sort: { date: -1 } },
-      });
+        populate: [
+          { path: 'paidBy', select: 'displayName email photoURL' },
+          { path: 'splits.user', select: 'displayName email photoURL' }
+        ]
+      })
+      .lean();
 
-    if (!group) {
-      return res.status(404).json({ error: 'Ez da taldea aurkitu edo baimena falta da' });
-    }
+    if (!group) return res.status(404).json({ error: 'Taldea ez da aurkitu edo ez zara kide' });
 
     return res.json(group);
   } catch (err) {
@@ -86,18 +88,18 @@ router.get('/:id', async (req, res) => {
 // PUT /api/groups/:id
 router.put('/:id', async (req, res) => {
   const { name, description, photoURL } = req.body;
-
   try {
     const user = await getMongoUser(req.user.uid);
-    const group = await Group.findOne({ _id: req.params.id, createdBy: user._id });
+    const group = await Group.findById(req.params.id);
 
-    if (!group) {
-      return res.status(403).json({ error: 'Sortzaileak soilik aldatu dezake taldea' });
+    if (!group) return res.status(404).json({ error: 'Taldea ez da aurkitu' });
+    if (group.createdBy.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Baimenik ez taldea editatzeko' });
     }
 
-    if (name)                    group.name        = name;
+    if (name) group.name = name;
     if (description !== undefined) group.description = description;
-    if (photoURL !== undefined)  group.photoURL    = photoURL;
+    if (photoURL !== undefined) group.photoURL = photoURL;
 
     await group.save();
     return res.json(group);
@@ -111,20 +113,22 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
-    const group = await Group.findOne({ _id: req.params.id, createdBy: user._id });
+    const group = await Group.findById(req.params.id);
 
-    if (!group) {
-      return res.status(403).json({ error: 'Sortzaileak soilik ezabatu dezake taldea' });
+    if (!group) return res.status(404).json({ error: 'Taldea ez da aurkitu' });
+    if (group.createdBy.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Baimenik ez taldea ezabatzeko' });
     }
 
-    await Expense.deleteMany({ group: group._id });
+    await Expense.deleteMany({ _id: { $in: group.expenses } });
+    await Group.findByIdAndDelete(req.params.id);
+
     await User.updateMany(
-      { _id: { $in: group.members } },
+      { groups: group._id },
       { $pull: { groups: group._id } }
     );
-    await Group.deleteOne({ _id: group._id });
 
-    return res.json({ message: 'Taldea eta gastu guztiak ezabatu dira' });
+    return res.json({ success: true });
   } catch (err) {
     console.error('DELETE /groups/:id:', err.message);
     return res.status(500).json({ error: err.message });
@@ -134,60 +138,106 @@ router.delete('/:id', async (req, res) => {
 // POST /api/groups/:id/members
 router.post('/:id/members', async (req, res) => {
   const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ error: 'Posta elektronikoa beharrezkoa da' });
-  }
+  if (!email) return res.status(400).json({ error: 'Emaila beharrezkoa da' });
 
   try {
-    const requestingUser = await getMongoUser(req.user.uid);
-    const group = await Group.findOne({ _id: req.params.id, members: requestingUser._id });
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ error: 'Taldea ez da aurkitu' });
 
-    if (!group) {
-      return res.status(404).json({ error: 'Ez da taldea aurkitu edo baimena falta da' });
+    const targetUser = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!targetUser) {
+      return res.status(404).json({ error: `Ez da aurkitu "${email}" helbidedun erabiltzailerik` });
     }
 
-    const newMember = await User.findOne({ email: email.toLowerCase().trim() });
-    if (!newMember) {
-      return res.status(404).json({ error: 'Ez dako posta elektroniko horri lotutako erabiltzailerik' });
-    }
+    const alreadyMember = group.members.some(m => m.toString() === targetUser._id.toString());
+    if (alreadyMember) return res.status(400).json({ error: 'Erabiltzailea lehendik kide da' });
 
-    if (group.members.includes(newMember._id)) {
-      return res.status(400).json({ error: 'Erabiltzailea taldeko kide da dagoeneko' });
-    }
-
-    group.members.push(newMember._id);
+    group.members.push(targetUser._id);
     await group.save();
-    await User.findByIdAndUpdate(newMember._id, { $addToSet: { groups: group._id } });
 
-    return res.status(201).json({ message: `${newMember.displayName} taldean sartu da` });
+    await User.findByIdAndUpdate(targetUser._id, {
+      $addToSet: { groups: group._id }
+    });
+
+    return res.json({ success: true });
   } catch (err) {
     console.error('POST /groups/:id/members:', err.message);
     return res.status(500).json({ error: err.message });
   }
 });
 
-// DELETE /api/groups/:id/members/:userId 
+// DELETE /api/groups/:id/members/:userId
 router.delete('/:id/members/:userId', async (req, res) => {
   try {
-    const requestingUser = await getMongoUser(req.user.uid);
-    const group = await Group.findOne({ _id: req.params.id, createdBy: requestingUser._id });
+    const user = await getMongoUser(req.user.uid);
+    const group = await Group.findById(req.params.id);
 
-    if (!group) {
-      return res.status(403).json({ error: 'Sortzaileak soilik bota dezake taldekide bat' });
+    if (!group) return res.status(404).json({ error: 'Taldea ez da aurkitu' });
+    if (group.createdBy.toString() !== user._id.toString()) {
+      return res.status(403).json({ error: 'Baimenik ez kideak kentzeko' });
     }
 
-    if (req.params.userId === requestingUser._id.toString()) {
-      return res.status(400).json({ error: 'Sortzaileak ezin du taldea utzi' });
+    if (group.createdBy.toString() === req.params.userId) {
+      return res.status(400).json({ error: 'Sortzaileak ezin du taldea utzi modu honetan' });
     }
 
     group.members = group.members.filter(m => m.toString() !== req.params.userId);
     await group.save();
-    await User.findByIdAndUpdate(req.params.userId, { $pull: { groups: group._id } });
 
-    return res.json({ message: 'Taldekidea taldetik atera da' });
+    await User.findByIdAndUpdate(req.params.userId, {
+      $pull: { groups: group._id }
+    });
+
+    return res.json({ success: true });
   } catch (err) {
     console.error('DELETE /groups/:id/members/:userId:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/groups/:id/leave
+router.post('/:id/leave', async (req, res) => {
+  try {
+    const user = await getMongoUser(req.user.uid);
+    const group = await Group.findById(req.params.id);
+
+    if (!group) return res.status(404).json({ error: 'Taldea ez da aurkitu' });
+
+    const isMember = group.members.some(m => m.toString() === user._id.toString());
+    if (!isMember) {
+      return res.status(400).json({ error: 'Ez zara talde honetako kidea' });
+    }
+
+    const isCreator = group.createdBy.toString() === user._id.toString();
+
+    if (isCreator) {
+      const remainingMembers = group.members.filter(m => m.toString() !== user._id.toString());
+
+      if (remainingMembers.length === 0) {
+        await Expense.deleteMany({ _id: { $in: group.expenses } });
+        await Group.findByIdAndDelete(req.params.id);
+        
+        await User.findByIdAndUpdate(user._id, {
+          $pull: { groups: group._id }
+        });
+
+        return res.json({ success: true, deleted: true, message: 'Taldea ezabatu da azken kidea zarelako.' });
+      }
+
+      group.createdBy = remainingMembers[0];
+    }
+
+    group.members = group.members.filter(m => m.toString() !== user._id.toString());
+    await group.save();
+
+    await User.findByIdAndUpdate(user._id, {
+      $pull: { groups: group._id }
+    });
+
+    return res.json({ success: true, deleted: false, message: 'Taldetik ongi irten zara.' });
+
+  } catch (err) {
+    console.error('POST /groups/:id/leave:', err.message);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -197,37 +247,60 @@ router.get('/:id/optimize', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
 
-    const group = await Group.findOne({
-      _id: req.params.id,
-      members: user._id,
-    }).populate('members', 'displayName email');
+    const group = await Group.findOne({ _id: req.params.id, members: user._id })
+      .populate('members', 'displayName')
+      .populate({
+        path: 'expenses',
+        populate: [
+          { path: 'paidBy', select: 'displayName' },
+          { path: 'splits.user', select: 'displayName' }
+        ]
+      });
 
-    if (!group) {
-      return res.status(404).json({ error: 'Ez da taldea aurkitu edo baimena falta da' });
-    }
+    if (!group) return res.status(404).json({ error: 'Taldea ez da aurkitu' });
 
-    const expenses = await Expense.find({ group: req.params.id }).lean();
+    const memberMap = {};
+    
+    group.members.forEach(m => {
+      memberMap[m._id.toString()] = { id: m._id, displayName: m.displayName };
+    });
 
-    const balance = {};
-    group.members.forEach(m => (balance[m._id.toString()] = 0));
-
-    for (const expense of expenses) {
-      const payer = expense.paidBy.toString();
-      if (balance[payer] !== undefined) balance[payer] += expense.amount;
-      for (const split of expense.splits) {
-        const participant = split.user.toString();
-        if (balance[participant] !== undefined) balance[participant] -= split.amount;
+    group.expenses.forEach(exp => {
+      if (exp.paidBy && !memberMap[exp.paidBy._id.toString()]) {
+        memberMap[exp.paidBy._id.toString()] = { id: exp.paidBy._id, displayName: exp.paidBy.displayName + " (Irten da)" };
       }
-    }
+      exp.splits.forEach(s => {
+        if (s.user && !memberMap[s.user._id.toString()]) {
+          memberMap[s.user._id.toString()] = { id: s.user._id, displayName: s.user.displayName + " (Irten da)" };
+        }
+      });
+    });
 
-    const balanceArray = Object.entries(balance).map(([userId, net]) => ({
-      userId,
-      net: parseFloat(net.toFixed(2)),
-    }));
+    const balances = {};
+    Object.keys(memberMap).forEach(uid => {
+      balances[uid] = 0;
+    });
 
-    const scriptPath = path.resolve(__dirname, '../../python/optimizazioa.py');
+    group.expenses.forEach(exp => {
+      const payerId = exp.paidBy?._id?.toString() || exp.paidBy?.toString();
+      if (balances[payerId] !== undefined) {
+        balances[payerId] += exp.amount;
+      }
+      exp.splits.forEach(s => {
+        const targetId = s.user?._id?.toString() || s.user?.toString();
+        if (balances[targetId] !== undefined) {
+          balances[targetId] -= s.amount;
+        }
+      });
+    });
 
-    let result;
+    const balanceArray = Object.keys(balances).map(uid => ({
+      userId: uid,
+      balance: balances[uid]
+    })).filter(b => Math.abs(b.balance) > 0.01);
+
+    const scriptPath = path.join(__dirname, '..', 'python', 'optimizazioa.py');
+    let result = [];
     try {
       result = await runPython(scriptPath, balanceArray);
     } catch (pyErr) {
@@ -235,14 +308,9 @@ router.get('/:id/optimize', async (req, res) => {
       return res.status(500).json({ error: `Errorea optimizazio motorrean: ${pyErr.message}` });
     }
 
-    const memberMap = {};
-    group.members.forEach(m => {
-      memberMap[m._id.toString()] = { id: m._id, displayName: m.displayName };
-    });
-
     const transfers = result.map(t => ({
-      from:   memberMap[t.from]   || { id: t.from,   displayName: t.from },
-      to:     memberMap[t.to]     || { id: t.to,     displayName: t.to },
+      from:   memberMap[t.from]   || { id: t.from,   displayName: `Erabiltzaile ohia (${t.from.substring(0,4)})` },
+      to:     memberMap[t.to]     || { id: t.to,     displayName: `Erabiltzaile ohia (${t.to.substring(0,4)})` },
       amount: t.amount,
     }));
 
@@ -263,11 +331,11 @@ function runPython(scriptPath, inputData) {
     py.stderr.on('data', d => (stderr += d.toString()));
 
     py.on('close', code => {
-      if (code !== 0) return reject(new Error(`Python-ek errore-kode hau eman du: ${code}: ${stderr}`));
+      if (code !== 0) return reject(new Error(stderr || `Python exetech code ${code}`));
       try {
         resolve(JSON.parse(stdout));
-      } catch {
-        reject(new Error(`Optimizatzailearen emaitza okerra: ${stdout}`));
+      } catch (parseErr) {
+        reject(new Error(`Malformed JSON output: ${stdout}`));
       }
     });
 

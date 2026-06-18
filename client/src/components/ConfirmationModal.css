@@ -1,0 +1,33 @@
+.cm-content {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb, 100, 100, 255), 0.2);
+  border: 3px solid var(--accent);
+  transform: scale(1.05);
+}
+
+.cm-header { 
+  border-bottom: 1px solid var(--border); 
+  padding: 1rem; 
+}
+
+.cm-footer { 
+  border-top: 1px solid var(--border); 
+  padding: 1rem; 
+  display: flex; 
+  justify-content: flex-end; 
+  gap: 0.5rem; 
+}
+
+.cm-body { 
+  color: var(--text-2); 
+  padding: 1rem; 
+}
+
+.modal.fade.show { 
+  z-index: 1070; 
+}
+
+.modal-backdrop.fade.show { 
+  z-index: 1060; 
+}

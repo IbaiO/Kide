@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../App';
 import api from '../services/api';
 import './SettingsPage.css';
 
@@ -15,6 +16,7 @@ function validateImageFile(file) {
 
 export default function SettingsPage() {
   const { profile, user, logout, reauthenticateUser, changePassword, updateProfile: updateCtxProfile } = useAuth();
+  const { previewTheme } = useTheme();
   const navigate = useNavigate();
 
   const [displayName, setDisplayName] = useState(profile?.displayName || '');
@@ -22,6 +24,17 @@ export default function SettingsPage() {
   const [accentColor, setAccentColor] = useState(profile?.accentColor || 'purple');
   const [saving, setSaving]           = useState(false);
   const [feedback, setFeedback]       = useState(null);
+
+  function handleThemeModeChange(e) {
+    const mode = e.target.value;
+    setThemeMode(mode);
+    previewTheme(mode, accentColor);
+  }
+
+  function handleAccentColorChange(color) {
+    setAccentColor(color);
+    previewTheme(themeMode, color);
+  }
 
   const [photoPreview, setPhotoPreview]   = useState(profile?.photoURL || null);
   const [uploadProgress, setUploadProgress] = useState(null); // 0-100 | null
@@ -216,7 +229,6 @@ export default function SettingsPage() {
           ref={photoInputRef}
           type="file"
           accept="image/*"
-          capture="user"
           style={{ display: 'none' }}
           onChange={handlePhotoSelected}
         />
@@ -262,20 +274,12 @@ export default function SettingsPage() {
             />
           </label>
 
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
+          <label className="sp-label-mt">
             Itxura modua
-            <select 
-              value={themeMode} 
-              onChange={e => setThemeMode(e.target.value)} 
-              style={{ 
-                background: 'var(--bg)', 
-                color: 'var(--text-1)', 
-                border: '1px solid var(--border)', 
-                borderRadius: 'var(--radius-sm)', 
-                padding: '0.5rem 0.6rem', 
-                marginTop: '0.25rem',
-                cursor: 'pointer'
-              }}
+            <select
+              value={themeMode}
+              onChange={handleThemeModeChange}
+              className="sp-select"
             >
               <option value="auto">Automatikoa (Sistemarena)</option>
               <option value="light">Modu Argia</option>
@@ -283,24 +287,18 @@ export default function SettingsPage() {
             </select>
           </label>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.8rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-1)' }}>Azentu kolorea</span>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.2rem' }}>
+          <div className="sp-accent-wrap">
+            <span className="sp-accent-label">Azentu kolorea</span>
+            <div className="sp-accent-grid">
               {['purple', 'green', 'orange', 'blue', 'red', 'pink', 'cyan', 'teal', 'lime', 'yellow'].map(color => {
                 const colorMap = { purple: '#7c6af7', green: '#3ecf8e', orange: '#f59e0b', blue: '#3b82f6', red: '#ef4444', pink: '#ec4899', cyan: '#06b6d4', teal: '#14b8a6', lime: '#84cc16', yellow: '#eab308' };
                 return (
                   <button
                     key={color}
                     type="button"
-                    onClick={() => setAccentColor(color)}
-                    style={{
-                      width: '28px', height: '28px', borderRadius: '50%',
-                      backgroundColor: colorMap[color], 
-                      border: accentColor === color ? '2px solid var(--text-1)' : '2px solid transparent',
-                      cursor: 'pointer', transition: 'transform 0.1s, border-color 0.1s', 
-                      transform: accentColor === color ? 'scale(1.15)' : 'scale(1)',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
-                    }}
+                    onClick={() => handleAccentColorChange(color)}
+                    className={`sp-accent-btn${accentColor === color ? ' sp-accent-btn--active' : ''}`}
+                    style={{ backgroundColor: colorMap[color] }}
                     title={color}
                   />
                 );

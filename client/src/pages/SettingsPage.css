@@ -201,3 +201,56 @@
   border-color: var(--red);
 }
 .btn-danger:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.sp-select {
+  background: var(--bg);
+  color: var(--text-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
+  margin-top: 0.25rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: border-color 0.15s;
+}
+.sp-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.sp-accent-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+}
+.sp-accent-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-1);
+}
+.sp-accent-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.2rem;
+}
+.sp-accent-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.sp-accent-btn:hover {
+  transform: scale(1.1);
+}
+.sp-accent-btn--active {
+  border-color: var(--text-1);
+  transform: scale(1.18);
+}
+
+.sp-label-mt { margin-top: 0.5rem; }

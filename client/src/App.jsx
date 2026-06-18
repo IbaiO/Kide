@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, createContext, useContext, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -10,6 +10,27 @@ import SettingsPage from './pages/SettingsPage';
 import { usePWA } from './hooks/usePWA';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
+
+const ThemeContext = createContext(null);
+export function useTheme() {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error('useTheme debe usarse dentro de ThemeManager');
+  return ctx;
+}
+
+function applyTheme(mode, accent) {
+  const root = document.documentElement;
+  root.setAttribute('data-accent', accent);
+
+  if (mode === 'auto') {
+    const systemMode = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    root.setAttribute('data-theme', systemMode);
+    root.setAttribute('data-bs-theme', systemMode);
+  } else {
+    root.setAttribute('data-theme', mode);
+    root.setAttribute('data-bs-theme', mode);
+  }
+}
 
 function UpdateBanner() {
   const { needRefresh, updateSW } = usePWA();
@@ -33,33 +54,31 @@ function UpdateBanner() {
 function ThemeManager({ children }) {
   const { profile } = useAuth();
 
+  const previewTheme = useCallback((mode, accent) => {
+    applyTheme(mode, accent);
+  }, []);
+
   useEffect(() => {
-    const mode = profile?.themeMode || 'auto';
+    const mode   = profile?.themeMode   || 'auto';
     const accent = profile?.accentColor || 'purple';
-    const root = document.documentElement;
 
-    root.setAttribute('data-accent', accent);
-
-    const applyMode = (targetMode) => {
-      root.setAttribute('data-theme', targetMode);
-      root.setAttribute('data-bs-theme', targetMode); // Compatibilidad Bootstrap
-    };
+    applyTheme(mode, accent);
 
     if (mode === 'auto') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
-      const systemMode = mediaQuery.matches ? 'light' : 'dark';
-      applyMode(systemMode);
-
-      // Listener: Sistemaren kolorea (Argia/Iluna)
-      const listener = (e) => applyMode(e.matches ? 'light' : 'dark');
+      const listener = (e) => {
+        applyTheme('auto', accent);
+      };
       mediaQuery.addEventListener('change', listener);
       return () => mediaQuery.removeEventListener('change', listener);
-    } else {
-      applyMode(mode);
     }
   }, [profile?.themeMode, profile?.accentColor]);
 
-  return children;
+  return (
+    <ThemeContext.Provider value={{ previewTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
 }
 
 export default function App() {
