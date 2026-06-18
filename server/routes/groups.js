@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 const Group = require('../models/Group');
 const User = require('../models/User');
 const Expense = require('../models/Expense');
@@ -296,10 +297,16 @@ router.get('/:id/optimize', async (req, res) => {
 
     const balanceArray = Object.keys(balances).map(uid => ({
       userId: uid,
-      balance: balances[uid]
-    })).filter(b => Math.abs(b.balance) > 0.01);
+      net: balances[uid]
+    })).filter(b => Math.abs(b.net) > 0.01);
+    
+    // Exekuzio lokala
+    let scriptPath = path.join(process.cwd(), '..', 'python', 'optimizazioa.py');
 
-    const scriptPath = path.join(__dirname, '..', 'python', 'optimizazioa.py');
+    // Online exekuzioa (VM)
+    if (!fs.existsSync(scriptPath)) {
+      scriptPath = path.join(process.cwd(), 'python', 'optimizazioa.py');
+    }
     let result = [];
     try {
       result = await runPython(scriptPath, balanceArray);
@@ -333,7 +340,11 @@ function runPython(scriptPath, inputData) {
     py.on('close', code => {
       if (code !== 0) return reject(new Error(stderr || `Python exetech code ${code}`));
       try {
-        resolve(JSON.parse(stdout));
+        const parsed = JSON.parse(stdout);
+        if (parsed && parsed.error) {
+          return reject(new Error(parsed.error));
+        }
+        resolve(parsed);
       } catch (parseErr) {
         reject(new Error(`Malformed JSON output: ${stdout}`));
       }
