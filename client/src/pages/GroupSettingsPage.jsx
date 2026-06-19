@@ -214,9 +214,14 @@ export default function GroupSettingsPage() {
   return (
     <main className="gs-layout">
       <header className="gs-header">
+        <span className="gs-logo">kide</span>
+      </header>
+
+      <nav className="gs-subbar">
         <button className="btn-ghost" onClick={() => navigate(`/groups/${id}`)}>‹ Atzera</button>
         <h2>Ezarpenak</h2>
-      </header>
+        <span />
+      </nav>
 
       {feedback && <div className="gs-feedback">{feedback}</div>}
 
@@ -282,10 +287,12 @@ export default function GroupSettingsPage() {
         <section className="gs-section" aria-label="Taldearen datuak editatu">
           <h3>Taldearen datuak</h3>
           <form onSubmit={saveGroup}>
-            <label>Izena
+            <label>
+              <span>Izena</span>
               <input value={name} onChange={e => setName(e.target.value)} required />
             </label>
-            <label>Deskribapena
+            <label>
+              <span>Deskribapena</span>
               <input value={desc} onChange={e => setDesc(e.target.value)} />
             </label>
             <button type="submit" className="btn-primary" disabled={saving}>

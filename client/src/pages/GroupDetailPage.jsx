@@ -19,6 +19,7 @@ export default function GroupDetailPage() {
   const [loading, setLoading]   = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editExpense, setEditExpense] = useState(null);
+  const [photoPreview, setPhotoPreview]     = useState(null);
 
   const [detailExpense, setDetailExpense] = useState(null);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
@@ -43,7 +44,12 @@ export default function GroupDetailPage() {
     }
   }
 
-  useEffect(() => { loadGroup(); }, [id]);
+  useEffect(() => { loadGroup()
+    api.get(`/groups/${id}`)
+      .then(r => {
+        setPhotoPreview(r.data.photoURL || null);
+      });
+    }, [id]);
 
   function requestDeleteExpense(expense) {
     setExpenseToDelete(expense);
@@ -135,15 +141,30 @@ export default function GroupDetailPage() {
 
   const balanceMembers = Object.values(membersMap);
 
-  return (
+return (
     <main className="gd-layout">
       <header className="gd-header">
-        <button className="btn-ghost" onClick={() => navigate('/')}>‹ Atzera</button>
-        <h2 className="gd-title">{group.name}</h2>
-        <div className="gd-header-actions">
-          <button className="btn-ghost" onClick={() => navigate(`/groups/${id}/settings`)}>⚙</button>
-        </div>
+        <span className="gd-logo">kide</span>
       </header>
+
+      <nav className="gd-subbar" aria-label="Taldearen ekintzak">
+        <button className="btn-ghost" onClick={() => navigate('/')}>‹ Atzera</button>
+        <button className="btn-ghost" onClick={() => navigate(`/groups/${id}/settings`)}>⚙ Ezarpenak</button>
+      </nav>
+
+      <div className="gd-photo-wrap">
+        {photoPreview ? (
+          <img src={photoPreview} alt="" className="gd-group-photo" />
+        ) : (
+          <div className="gd-group-photo-placeholder" aria-hidden="true">
+            {group.name[0].toUpperCase()}
+          </div>
+        )}
+        {/* Adiani galdetzeko zalantza: h1 erabili, beste estilo batekin? GALDETZEAZ GOATU */}
+        <h1 className="h4 mb-0" style={{ fontWeight: 600, color: 'var(--text-1)' }}>
+          {group.name}
+        </h1>
+      </div>
 
       {memberFeedback && <div className="gd-member-feedback">{memberFeedback}</div>}
 
@@ -171,81 +192,79 @@ export default function GroupDetailPage() {
       <div className="row g-3 gd-content">
 
         {/* Ezker zutabea: Gastuen zerrenda */}
-        <div className={`col-12 col-xl-7 ${!showGastuak ? 'd-none d-xl-block' : ''}`}>
-          <section id="gastuak" aria-label="Gastuen historia">
-            <div className="gd-actions">
-              <button
-                className="btn-primary btn-member-accent"
-                onClick={() => setShowAddMember(v => !v)}
-              >
-                {showAddMember ? 'Utzi' : '+ Kidea gehitu'}
-              </button>
-              <button className="btn-primary" onClick={() => { setEditExpense(null); setShowForm(true); }}>
-                + Gastua gehitu
-              </button>
-            </div>
+        <section className={`col-12 col-xl-7 ${!showGastuak ? 'd-none d-xl-block' : ''}`} aria-labelledby="gastuak-heading">
+          <h2 id="gastuak-heading" className="visually-hidden">Gastuen historia</h2>
+          
+          <div className="gd-actions">
+            <button
+              className="btn-primary btn-member-accent"
+              onClick={() => setShowAddMember(v => !v)}
+            >
+              {showAddMember ? 'Utzi' : '+ Kidea gehitu'}
+            </button>
+            <button className="btn-primary" onClick={() => { setEditExpense(null); setShowForm(true); }}>
+              + Gastua gehitu
+            </button>
+          </div>
 
-            {showForm && (
-              <ExpenseForm
-                groupId={id}
-                members={group.members}
-                expense={editExpense}
-                onSaved={onExpenseSaved}
-                onCancel={() => { setShowForm(false); setEditExpense(null); }}
-              />
-            )}
+          {showForm && (
+            <ExpenseForm
+              groupId={id}
+              members={group.members}
+              expense={editExpense}
+              onSaved={onExpenseSaved}
+              onCancel={() => { setShowForm(false); setEditExpense(null); }}
+            />
+          )}
 
-            {expenses.length === 0 ? (
-              <div className="gd-empty">Oraindik ez dago gasturik.</div>
-            ) : (
-              <ul className="gd-expense-list">
-                {expenses.map(e => (
-                  <li
-                    key={e._id}
-                    className="gd-expense-card"
-                    onClick={() => setDetailExpense(e)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(ev) => { if (ev.key === 'Enter') setDetailExpense(e); }}
-                  >
-                    <div className="gde-left">
-                      <span className="gde-desc">{e.description}</span>
-                      <span className="gde-meta">
-                        {e.paidBy?.displayName} · {new Date(e.date).toLocaleDateString('eu-ES')}
-                      </span>
-                    </div>
-                    <div className="gde-right">
-                      <span className="gde-amount">{e.amount.toFixed(2)} €</span>
-                      {e.paidBy?._id === profile?.id && (
-                        <div className="gde-actions">
-                          <button
-                            className="btn-icon"
-                            onClick={ev => { ev.stopPropagation(); setEditExpense(e); setShowForm(true); }}
-                          >
-                            ✏
-                          </button>
-                          <button
-                            className="btn-icon danger"
-                            onClick={ev => { ev.stopPropagation(); requestDeleteExpense(e); }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
+          {expenses.length === 0 ? (
+            <div className="gd-empty">Oraindik ez dago gasturik.</div>
+          ) : (
+            <ul className="gd-expense-list">
+              {expenses.map(e => (
+                <li
+                  key={e._id}
+                  className="gd-expense-card"
+                  onClick={() => setDetailExpense(e)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(ev) => { if (ev.key === 'Enter') setDetailExpense(e); }}
+                >
+                  <div className="gde-left">
+                    <span className="gde-desc">{e.description}</span>
+                    <span className="gde-meta">
+                      {e.paidBy?.displayName} · {new Date(e.date).toLocaleDateString('eu-ES')}
+                    </span>
+                  </div>
+                  <div className="gde-right">
+                    <span className="gde-amount">{e.amount.toFixed(2)} €</span>
+                    {e.paidBy?._id === profile?.id && (
+                      <div className="gde-actions">
+                        <button
+                          className="btn-icon"
+                          onClick={ev => { ev.stopPropagation(); setEditExpense(e); setShowForm(true); }}
+                        >
+                          ✏
+                        </button>
+                        <button
+                          className="btn-icon danger"
+                          onClick={ev => { ev.stopPropagation(); requestDeleteExpense(e); }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-        {/* Eskuin zutabea: Balantzzeak */}
-        <div className={`col-12 col-xl-5 ${!showBalantzea ? 'd-none d-xl-block' : ''}`}>
-          <aside id="balantzea" aria-label="Taldearen balantzea">
-            <Balance groupId={id} members={balanceMembers} version={balanceVersion} />
-          </aside>
-        </div>
+        {/* Eskuin zutabea: Balantzeak */}
+        <aside className={`col-12 col-xl-5 ${!showBalantzea ? 'd-none d-xl-block' : ''}`} aria-label="Taldearen balantzea">
+          <Balance groupId={id} members={balanceMembers} version={balanceVersion} />
+        </aside>
 
       </div>
 

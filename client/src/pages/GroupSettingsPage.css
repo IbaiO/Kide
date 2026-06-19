@@ -3,12 +3,32 @@
 .gs-layout { max-width: 640px; margin: 0 auto; padding: 0 1rem 4rem; }
 
 .gs-header {
-  display: flex; align-items: center; gap: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 1.2rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.gs-logo { font-size: 1.4rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+
+.gs-subbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
   border-bottom: 1px solid var(--border);
   margin-bottom: 1.5rem;
 }
-.gs-header h2 { font-size: 1.1rem; font-weight: 600; }
+.gs-subbar h2 {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
 
 .gs-feedback {
   background: var(--accent-glow);

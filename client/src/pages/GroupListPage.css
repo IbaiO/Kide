@@ -3,12 +3,20 @@
 .gl-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 1.2rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.gl-logo { font-size: 1.4rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+
+.gl-subbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
   border-bottom: 1px solid var(--border);
   margin-bottom: 1.5rem;
 }
-.gl-logo { font-size: 1.4rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
 .gl-header-actions { display: flex; align-items: center; gap: 0.75rem; }
 
 .gl-avatar-btn {

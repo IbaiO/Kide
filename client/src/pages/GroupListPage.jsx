@@ -51,29 +51,30 @@ export default function GroupListPage() {
     <main className="gl-layout">
       <header className="gl-header">
         <span className="gl-logo">kide</span>
-        <header className="gl-header-actions">
-          <button
-            className="gl-avatar-btn"
-            onClick={() => navigate('/settings')}
-            title={profile?.displayName || 'Ezarpenak'}
-            aria-label="Nire ezarpenak"
-          >
-            {profile?.photoURL ? (
-              <img src={profile.photoURL} alt={profile.displayName} className="gl-avatar-img" />
-            ) : (
-              <span className="gl-avatar-initials">{getInitials(profile?.displayName)}</span>
-            )}
-          </button>
-          <button className="btn-ghost" onClick={logout}>Irten</button>
-        </header>
       </header>
 
-      <div className="gl-top">
+      <nav className="gl-subbar">
+        <button
+          className="gl-avatar-btn"
+          onClick={() => navigate('/settings')}
+          title={profile?.displayName || 'Ezarpenak'}
+          aria-label="Nire ezarpenak"
+        >
+          {profile?.photoURL ? (
+            <img src={profile.photoURL} alt={profile.displayName} className="gl-avatar-img" />
+          ) : (
+            <span className="gl-avatar-initials">{getInitials(profile?.displayName)}</span>
+          )}
+        </button>
+        <button className="btn-ghost" onClick={logout}>Irten</button>
+      </nav>
+
+      <section className="gl-top">
         <h1>Nire taldeak</h1>
         <button className="btn-primary" onClick={() => setShowForm(v => !v)}>
           {showForm ? 'Utzi' : '+ Taldea sortu'}
         </button>
-      </div>
+      </section>
 
       {showForm && (
         <form className="new-group-form" onSubmit={createGroup}>
@@ -91,12 +92,12 @@ export default function GroupListPage() {
             value={newDesc}
             onChange={e => setNewDesc(e.target.value)}
           />
-          <div className="form-actions">
+          <section className="form-actions">
             <button type="button" className="btn-ghost" onClick={() => setShowForm(false)}>Utzi</button>
             <button type="submit" className="btn-primary" disabled={creating}>
               {creating ? 'Sortzen…' : 'Sortu'}
             </button>
-          </div>
+          </section>
         </form>
       )}
 

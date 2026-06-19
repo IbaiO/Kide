@@ -193,9 +193,14 @@ export default function SettingsPage() {
   return (
     <main className="sp-layout">
       <header className="sp-header">
+        <span className="sp-logo">kide</span>
+      </header>
+
+      <nav className="sp-subbar">
         <button className="btn-ghost" onClick={() => navigate('/')}>‹ Atzera</button>
         <h2>Nire ezarpenak</h2>
-      </header>
+        <span />
+      </nav>
 
       {/* ── Profila: Izena, irudia, gaiak */}
       <section className="sp-section">
