@@ -188,19 +188,12 @@ export default function SettingsPage() {
     }
   }
 
-  const initials = displayName ? displayName.slice(0, 2).toUpperCase() : '?';
-
   return (
     <main className="sp-layout">
-      <header className="sp-header">
-        <span className="sp-logo">kide</span>
-      </header>
-
-      <nav className="sp-subbar">
-        <button className="btn-ghost" onClick={() => navigate('/')}>‹ Atzera</button>
-        <h2>Nire ezarpenak</h2>
-        <span />
-      </nav>
+      <section className="top">
+        <button className="btn-ghost" onClick={() => navigate(`/`)}>‹ Atzera</button>
+        <h1>Nire ezarpenak</h1>
+      </section>
 
       {/* ── Profila: Izena, irudia, gaiak */}
       <section className="sp-section">

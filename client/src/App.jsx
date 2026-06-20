@@ -1,5 +1,5 @@
 import React, { useEffect, createContext, useContext, useCallback } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
@@ -16,6 +16,34 @@ export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) throw new Error('useTheme debe usarse dentro de ThemeManager');
   return ctx;
+}
+
+function GlobalHeader() {
+  const { profile, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  if (!profile || location.pathname === '/login') return null;
+
+  return (
+    <header className="mn-header">
+      <section className="mn-header-container">
+        <span className="mn-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>kide</span>
+        <section className="mn-header-actions">
+          <button className="mn-avatar-btn" onClick={() => navigate('/settings')} aria-label="Ezarpenak">
+            {profile.photoURL ? (
+              <img src={profile.photoURL} alt="Profila" className="mn-avatar-img" />
+            ) : (
+              <span className="mn-avatar-initials">
+                {profile.displayName ? profile.displayName[0].toUpperCase() : '?'}
+              </span>
+            )}
+          </button>
+          <button className="btn-ghost" onClick={logout} style={{ fontSize: '0.85rem' }}>Irten</button>
+        </section>
+      </section>
+    </header>
+  );
 }
 
 function applyTheme(mode, accent) {
@@ -87,6 +115,9 @@ export default function App() {
       <AuthProvider>
         <ThemeManager>
           <UpdateBanner />
+
+          <GlobalHeader />
+
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={

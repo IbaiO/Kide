@@ -202,3 +202,15 @@ a:hover { color: var(--accent-dim); }
   transition: color 0.15s, border-color 0.15s;
 }
 .tab.active { color: var(--accent); border-color: var(--accent); }
+
+.top {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+.top h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+}

@@ -1,4 +1,8 @@
-.gd-loading { text-align: center; color: var(--text-2); padding: 4rem; }
+.gd-loading {
+  text-align: center;
+  color: var(--text-2);
+  padding: 4rem;
+}
 
 .gd-layout {
   max-width: 640px;
@@ -12,43 +16,18 @@
   }
 }
 
-.gd-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.2rem 0;
-  border-bottom: 1px solid var(--border);
-}
-.gd-logo { font-size: 1.4rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
-
-.gd-subbar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 0.5rem;
-}
-.gd-title {
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 1rem;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 50%;
-  pointer-events: none;
-}
-
 .gd-photo-wrap {
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-top: 1rem;
   margin-bottom: 1rem;
+}
+
+@media (min-width: 1200px) {
+  .gd-photo-wrap {
+    width: 58.333333%;
+  }
 }
 
 .gd-group-photo {
@@ -92,7 +71,10 @@
 }
 .gd-add-member input { flex: 1; }
 
-.gd-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
+.gd-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.25rem; }
 
 .gd-content { padding-top: 1.25rem; }
 
@@ -115,6 +97,8 @@
   background-color: var(--bg-hover) !important;
 }
 
+.gd-settings-btn { margin-left: auto; }
+
 @media (max-width: 576px) {
   .gd-actions button {
     flex: 1;
@@ -125,11 +109,25 @@
   }
 }
 
-.gd-empty { text-align: center; color: var(--text-2); padding: 3rem 0; }
+.gd-empty {
+  text-align: center;
+  color: var(--text-2);
+  padding: 3rem 0;
+}
 
-.gd-expense-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; padding: 0; margin: 0; }
+.gd-expense-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+}
+
 .gd-expense-card {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -138,12 +136,36 @@
   transition: background-color 0.3s ease;
   width: 100%;
 }
-.gd-expense-card:hover {
-  background-color: var(--bg-hover);
+.gd-expense-card:hover { background-color: var(--bg-hover);}
+
+.gde-left {
+  display: flex;
+  flex-direction: column;gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
 }
-.gde-left { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; min-width: 0; }
+
 .gde-desc { font-weight: 500; }
-.gde-meta { color: var(--text-2); font-size: 0.8rem; }
-.gde-right { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
-.gde-amount { font-weight: 600; font-size: 1rem; font-family: 'DM Mono', monospace; }
-.gde-actions { display: flex; gap: 0.25rem; }
+
+.gde-meta {
+  color: var(--text-2);
+  font-size: 0.8rem;
+}
+
+.gde-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.gde-amount {
+  font-weight: 600;
+  font-size: 1rem;
+  font-family: 'DM Mono', monospace;
+}
+
+.gde-actions {
+  display: flex;
+  gap: 0.25rem;
+}

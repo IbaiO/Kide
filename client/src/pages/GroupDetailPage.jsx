@@ -37,6 +37,7 @@ export default function GroupDetailPage() {
       const { data } = await api.get(`/groups/${id}`);
       setGroup(data);
       setExpenses(data.expenses || []);
+      setPhotoPreview(data.photoURL || null);
     } catch (err) {
       console.error(err);
     } finally {
@@ -45,11 +46,7 @@ export default function GroupDetailPage() {
   }
 
   useEffect(() => { loadGroup()
-    api.get(`/groups/${id}`)
-      .then(r => {
-        setPhotoPreview(r.data.photoURL || null);
-      });
-    }, [id]);
+    api.get(`/groups/${id}`)}, [id]);
 
   function requestDeleteExpense(expense) {
     setExpenseToDelete(expense);
@@ -143,14 +140,9 @@ export default function GroupDetailPage() {
 
 return (
     <main className="gd-layout">
-      <header className="gd-header">
-        <span className="gd-logo">kide</span>
-      </header>
-
-      <nav className="gd-subbar" aria-label="Taldearen ekintzak">
-        <button className="btn-ghost" onClick={() => navigate('/')}>‹ Atzera</button>
-        <button className="btn-ghost" onClick={() => navigate(`/groups/${id}/settings`)}>⚙ Ezarpenak</button>
-      </nav>
+      <section className="top">
+        <button className="btn-ghost" onClick={() => navigate(`/`)}>‹ Atzera</button>
+      </section>
 
       <div className="gd-photo-wrap">
         {photoPreview ? (
@@ -160,10 +152,10 @@ return (
             {group.name[0].toUpperCase()}
           </div>
         )}
-        {/* Adiani galdetzeko zalantza: h1 erabili, beste estilo batekin? GALDETZEAZ GOATU */}
         <h1 className="h4 mb-0" style={{ fontWeight: 600, color: 'var(--text-1)' }}>
           {group.name}
         </h1>
+        <button className="btn-ghost gd-settings-btn" onClick={() => navigate(`/groups/${id}/settings`)}>⚙ Ezarpenak</button>
       </div>
 
       {memberFeedback && <div className="gd-member-feedback">{memberFeedback}</div>}

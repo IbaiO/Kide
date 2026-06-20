@@ -58,10 +58,10 @@ export default function LoginPage() {
   return (
     <main className="login-bg">
       <section className="login-card">
-        <header className="login-header">
+        <section className="login-title">
           <span className="login-logo">kide</span>
           <p className="login-tagline">Lagun artean, kontuak garbi.</p>
-        </header>
+        </section>
 
         <div className="login-tabs">
           <button

@@ -5,6 +5,7 @@ import { storage } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import './GroupSettingsPage.css';
+import '../App.css';
 import ConfirmationModal from '../components/ConfirmationModal';
 
 function validateImageFile(file) {
@@ -213,15 +214,10 @@ export default function GroupSettingsPage() {
 
   return (
     <main className="gs-layout">
-      <header className="gs-header">
-        <span className="gs-logo">kide</span>
-      </header>
-
-      <nav className="gs-subbar">
+      <section className="top">
         <button className="btn-ghost" onClick={() => navigate(`/groups/${id}`)}>‹ Atzera</button>
-        <h2>Ezarpenak</h2>
-        <span />
-      </nav>
+        <h1>Taldearen ezarpenak</h1>
+      </section>
 
       {feedback && <div className="gs-feedback">{feedback}</div>}
 

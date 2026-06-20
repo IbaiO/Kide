@@ -1,1 +1,69 @@
-/* hutsik — oraingoz, estiloak index.css eta orrialde bakoitzeko CSS-fitxategietan kudeatzen dira. */
+.mn-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+}
+
+.mn-header-container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (min-width: 800px) {
+  .mn-header-container {
+    max-width: 800px;
+    padding: 0.75rem 2rem;
+  }
+}
+
+.mn-logo {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+  user-select: none;
+}
+
+.mn-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mn-avatar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--accent-glow);
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s, transform 0.15s;
+  flex-shrink: 0;
+}
+.mn-avatar-btn:hover {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
+.mn-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mn-avatar-initials {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+}

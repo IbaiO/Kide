@@ -5,7 +5,7 @@ import api from '../services/api';
 import './GroupListPage.css';
 
 export default function GroupListPage() {
-  const { profile, logout } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
 
   const [groups, setGroups]       = useState([]);
@@ -39,36 +39,8 @@ export default function GroupListPage() {
     }
   }
 
-  function getInitials(name) {
-    if (!name) return '?';
-    return name.trim().split(' ')
-      .map(w => w[0].toUpperCase())
-      .slice(0, 2)
-      .join('');
-  }
-
   return (
     <main className="gl-layout">
-      <header className="gl-header">
-        <span className="gl-logo">kide</span>
-      </header>
-
-      <nav className="gl-subbar">
-        <button
-          className="gl-avatar-btn"
-          onClick={() => navigate('/settings')}
-          title={profile?.displayName || 'Ezarpenak'}
-          aria-label="Nire ezarpenak"
-        >
-          {profile?.photoURL ? (
-            <img src={profile.photoURL} alt={profile.displayName} className="gl-avatar-img" />
-          ) : (
-            <span className="gl-avatar-initials">{getInitials(profile?.displayName)}</span>
-          )}
-        </button>
-        <button className="btn-ghost" onClick={logout}>Irten</button>
-      </nav>
-
       <section className="gl-top">
         <h1>Nire taldeak</h1>
         <button className="btn-primary" onClick={() => setShowForm(v => !v)}>
