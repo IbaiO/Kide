@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { AuthProvider, useAuth } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import GroupListPage from './pages/GroupListPage';
 import GroupDetailPage from './pages/GroupDetailPage';
 import GroupSettingsPage from './pages/GroupSettingsPage';
@@ -19,11 +20,22 @@ export function useTheme() {
 }
 
 function GlobalHeader() {
-  const { profile, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (!profile || location.pathname === '/login') return null;
+  const isUnverifiedPasswordUser = !!user &&
+    user.providerData.some((provider) => provider.providerId === 'password') &&
+    !user.emailVerified;
+
+  if (
+    !profile ||
+    location.pathname === '/login' ||
+    location.pathname === '/verify-email' ||
+    isUnverifiedPasswordUser
+  ) {
+    return null;
+  }
 
   return (
     <header className="mn-header">
@@ -120,6 +132,7 @@ export default function App() {
 
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/" element={
               <PrivateRoute><GroupListPage /></PrivateRoute>
             } />

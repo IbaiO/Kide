@@ -12,6 +12,11 @@ async function verifyToken(req, res, next) {
 
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
+
+    if (decodedToken.firebase.sign_in_provider === 'password' && decodedToken.email_verified === false) {
+      return res.status(403).json({ error: 'Emaila egiaztatu gabe dago' });
+    }
+
     req.user = decodedToken; // { uid, email, name, picture, ... }
     next();
   } catch (err) {

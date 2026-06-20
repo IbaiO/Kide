@@ -4,5 +4,16 @@ import { useAuth } from '../context/AuthContext';
 
 export default function PrivateRoute({ children }) {
   const { user } = useAuth();
-  return user ? children : <Navigate to="/login" replace />;
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  const isPasswordUser = user.providerData.some(
+    (provider) => provider.providerId === 'password'
+  );
+
+  if (isPasswordUser && !user.emailVerified) {
+    return <Navigate to="/verify-email" replace />;
+  }
+
+  return children;
 }

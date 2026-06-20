@@ -8,6 +8,7 @@ import {
   signOut,
   updateProfile,
   updatePassword,
+  sendEmailVerification,
   EmailAuthProvider,
   reauthenticateWithCredential,
   reauthenticateWithPopup
@@ -54,8 +55,26 @@ export function AuthProvider({ children }) {
   async function registerWithEmail(email, password, displayName) {
     const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(firebaseUser, { displayName });
-    await syncWithBackend(firebaseUser, displayName);
+
+    // Ez du euskera onartzen :(
+    //auth.languageCode = 'eu';
+
+    await sendEmailVerification(firebaseUser);
+
     return firebaseUser;
+  }
+
+  async function resendVerificationEmail() {
+    if (!auth.currentUser) throw new Error('Ez da saioa aurkitu, saiatu berriro');
+    //auth.languageCode = 'eu';
+    return sendEmailVerification(auth.currentUser);
+  }
+  async function forceSignOut() {
+    try {
+      await signOut(auth);
+    } finally {
+      setProfile(null);
+    }
   }
 
   async function loginWithGoogle() {
@@ -69,7 +88,7 @@ export function AuthProvider({ children }) {
   }
 
   async function reauthenticateUser(currentPassword) {
-    if (!auth.currentUser) throw new Error('No hay usuario autenticado');
+    if (!auth.currentUser) throw new Error('Ez da saioa aurkitu, saiatu berriro');
 
     const isGoogleUser = auth.currentUser.providerData.some(
       (provider) => provider.providerId === 'google.com'
@@ -97,6 +116,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user, profile, loading,
       loginWithEmail, registerWithEmail, loginWithGoogle, logout,
+      resendVerificationEmail, forceSignOut,
       reauthenticateUser,
       changePassword,
       updateProfile: updateLocalProfile,
