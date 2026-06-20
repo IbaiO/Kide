@@ -47,7 +47,7 @@ export default function Balance({ groupId, members, version = 0 }) {
   return (
     <div className="bal-container">
       <section className="bal-section">
-        <h3>Saldo garbia</h3>
+        <h3>Balantzeak</h3>
         {balances.length === 0 ? (
           <p className="bal-empty">Oraindik ez dago gasturik.</p>
         ) : (

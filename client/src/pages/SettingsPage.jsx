@@ -170,7 +170,8 @@ export default function SettingsPage() {
 
   async function handleDeleteAccount(e) {
     e.preventDefault();
-    if (!deletePassword) return;
+    if (isEmailProvider && !deletePassword) return;
+    
     setDeleting(true);
     setFeedback(null);
     try {
@@ -179,10 +180,20 @@ export default function SettingsPage() {
       await logout();
       navigate('/login', { replace: true });
     } catch (err) {
+      console.error(err);
       const isWrongPw = err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential';
+      const isPopupClosed = err.code === 'auth/popup-closed-by-user';
+
+      let errorMsg = 'Errorea kontua ezabatzean. Saiatu berriro.';
+      if (isWrongPw) {
+        errorMsg = 'Pasahitza ez da zuzena.';
+      } else if (isPopupClosed) {
+        errorMsg = 'Identifikazio leihoa itxi duzu kontua ezabatu aurretik.';
+      }
+
       setFeedback({
         type: 'error',
-        msg: isWrongPw ? 'Pasahitza ez da zuzena.' : 'Errorea kontua ezabatzean. Saiatu berriro.',
+        msg: errorMsg,
       });
       setDeleting(false);
     }
@@ -273,7 +284,7 @@ export default function SettingsPage() {
           </label>
 
           <label className="sp-label-mt">
-            Itxura modua
+            Argitasuna
             <select
               value={themeMode}
               onChange={handleThemeModeChange}

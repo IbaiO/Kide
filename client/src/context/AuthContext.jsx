@@ -8,8 +8,9 @@ import {
   signOut,
   updateProfile,
   updatePassword,
-  EmailAuthProvider,            // Importamos para la credencial
-  reauthenticateWithCredential // Importamos para la seguridad crítica
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup
 } from 'firebase/auth';
 import { auth, googleProvider } from '../services/firebase';
 import api from '../services/api';
@@ -21,10 +22,12 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null); // perfil en MongoDB
   const [loading, setLoading] = useState(true);
 
-  async function syncWithBackend(firebaseUser) {
+  async function syncWithBackend(firebaseUser, manualName = null) {
     try {
-      const idToken = await firebaseUser.getIdToken();
-      const { data } = await api.post('/users/register', { idToken });
+      const idToken = await firebaseUser.getIdToken(true);
+      const payload = { idToken };      
+      if (manualName) payload.displayName = manualName;
+      const { data } = await api.post('/users/register', payload);
       setProfile(data.user);
     } catch (err) {
       console.error('Error sincronizando con backend:', err);
@@ -51,7 +54,7 @@ export function AuthProvider({ children }) {
   async function registerWithEmail(email, password, displayName) {
     const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(firebaseUser, { displayName });
-    await syncWithBackend(firebaseUser);
+    await syncWithBackend(firebaseUser, displayName);
     return firebaseUser;
   }
 
@@ -67,8 +70,16 @@ export function AuthProvider({ children }) {
 
   async function reauthenticateUser(currentPassword) {
     if (!auth.currentUser) throw new Error('No hay usuario autenticado');
+
+    const isGoogleUser = auth.currentUser.providerData.some(
+      (provider) => provider.providerId === 'google.com'
+    );
+
+    if (isGoogleUser) {
+      return reauthenticateWithPopup(auth.currentUser, googleProvider);
+    }
+
     if (!auth.currentUser.email) throw new Error('Proveedor no compatible');
-    
     const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
     return reauthenticateWithCredential(auth.currentUser, credential);
   }

@@ -10,7 +10,7 @@ const { verifyToken } = require('../middleware/auth');
 // Erabiltzaile profila sortu edo sinkronizatu MongoDB-n Firebase-rekin saioa hasi ondoryen.
 // photoURL atributua sinkronizatu eta babestu, ez gainidazteko.
 router.post('/register', async (req, res) => {
-  const { idToken } = req.body;
+  const { idToken, displayName: manualDisplayName } = req.body;
   if (!idToken) return res.status(400).json({ error: 'idToken-a falta da' });
 
   try {
@@ -21,12 +21,14 @@ router.post('/register', async (req, res) => {
 
     const finalPhotoURL = existingUser?.photoURL || picture || null;
 
+    let finalDisplayName = name || manualDisplayName || existingUser?.displayName || email.split('@')[0];
+
     const user = await User.findOneAndUpdate(
       { firebaseUid: uid },
       {
         firebaseUid: uid,
         email,
-        displayName: existingUser?.displayName || name || email.split('@')[0],
+        displayName: finalDisplayName,
         photoURL: finalPhotoURL,
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -103,31 +105,34 @@ router.put('/profile', verifyToken, async (req, res) => {
 });
 
 // DELETE /api/users/me
-// Ezabatu erabiltzailea eta bere informazioa
+// Ezabatu erabiltzailea eta bere informazioa (MongoDB + Firebase Auth)
 router.delete('/me', verifyToken, async (req, res) => {
   try {
     const user = await User.findOne({ firebaseUid: req.user.uid });
     if (!user) return res.status(404).json({ error: 'Ez da erabiltzailea aurkitu' });
 
-    // Taldeetatik atera
+    await admin.auth().deleteUser(req.user.uid);
+
     await Group.updateMany(
       { members: user._id },
       { $pull: { members: user._id } }
     );
 
-    // Gastuak ezabatu (edo anonimatu)
     await Expense.deleteMany({ paidBy: user._id });
     
-    // Erabiltzailea ezabatu
     await User.deleteOne({ _id: user._id });
 
-    // Saioa itxi
-    req.session.destroy();
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Errorea saioa suntsitzean:', err);
+      }
+      res.clearCookie('connect.sid');
+      return res.json({ message: 'Kontua eta datu guztiak zuzen ezabatu dira.' });
+    });
 
-    return res.json({ message: 'Kontua ongi ezabatu da' });
   } catch (err) {
-    console.error('Errorea DELETE /users/me egitean:', err.message);
-    return res.status(500).json({ error: 'Errorea kontua ezabatzean' });
+    console.error('Errorea PUT /profile egitean:', err.message);
+    return res.status(500).json({ error: 'Errorea erabiltzailea eta kontua ezabatzean' });
   }
 });
 
