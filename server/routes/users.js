@@ -136,4 +136,52 @@ router.delete('/me', verifyToken, async (req, res) => {
   }
 });
 
+// DELETE /api/users/unverified
+// Egiaztatu gabeko kontuak ezabatzeko (MongoDB + Firebase Auth).
+router.delete('/unverified', async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken) return res.status(400).json({ error: 'idToken-a falta da' });
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const { uid, email_verified, firebase } = decodedToken;
+
+    if (firebase.sign_in_provider !== 'password' || email_verified !== false) {
+      return res.status(403).json({ error: 'Kontu hau ez da bide honetatik ezabagarria' });
+    }
+
+    let mongoDeleted = false;
+    let firebaseDeleted = false;
+
+    try {
+      await User.deleteOne({ firebaseUid: uid });
+      mongoDeleted = true;
+    } catch (err) {
+      console.error('Errorea MongoDB-ko erabiltzailea ezabatzean:', err.message);
+    }
+
+    try {
+      await admin.auth().deleteUser(uid);
+      firebaseDeleted = true;
+    } catch (err) {
+      console.error('Errorea Firebase-ko erabiltzailea ezabatzean:', err.message);
+    }
+
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Errorea saioa suntsitzean unverified-en:', err);
+      }
+      res.clearCookie('connect.sid');
+      return res.json({ 
+        message: 'Kontu egiaztatu gabea ezabatu da', 
+        mongoDeleted, 
+        firebaseDeleted 
+      });
+    });  
+  } catch (err) {
+    console.error('Errorea /unverified ezabatzean:', err.message);
+    return res.status(401).json({ error: 'Token baliogabea edo iraungia' });
+  }
+});
+
 module.exports = router;

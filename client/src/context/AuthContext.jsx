@@ -39,18 +39,26 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
-        await syncWithBackend(firebaseUser);
-      } else {
-        setProfile(null);
-      }
+        const isGoogle = firebaseUser.providerData.some(p => p.providerId === 'google.com');
+        if (isGoogle || firebaseUser.emailVerified) {
+          await syncWithBackend(firebaseUser);
+        } else { setProfile(null);}
+      } else { setProfile(null); }
       setLoading(false);
     });
     return unsubscribe;
   }, []);
 
   async function loginWithEmail(email, password) {
-    return signInWithEmailAndPassword(auth, email, password);
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    await userCredential.user.reload();
+    await userCredential.user.getIdToken(true);
+    if (userCredential.user.emailVerified) {
+      await syncWithBackend(userCredential.user);
   }
+
+  return userCredential.user;
+}
 
   async function registerWithEmail(email, password, displayName) {
     const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password);
@@ -69,10 +77,26 @@ export function AuthProvider({ children }) {
     //auth.languageCode = 'eu';
     return sendEmailVerification(auth.currentUser);
   }
+
   async function forceSignOut() {
     try {
       await signOut(auth);
     } finally {
+      setProfile(null);
+    }
+  }
+
+  async function deleteUnverifiedAccount() {
+    if (!auth.currentUser) return;
+    try {
+      const idToken = await auth.currentUser.getIdToken(true);
+      await api.delete('/users/unverified', { data: { idToken } });
+    } catch (err) {
+      console.error('Error eliminando la cuenta no verificada:', err);
+    } finally {
+      try {
+        await signOut(auth);
+      } catch { }
       setProfile(null);
     }
   }
@@ -88,7 +112,7 @@ export function AuthProvider({ children }) {
   }
 
   async function reauthenticateUser(currentPassword) {
-    if (!auth.currentUser) throw new Error('Ez da saioa aurkitu, saiatu berriro');
+    if (!auth.currentUser) throw new Error('No hay usuario autenticado');
 
     const isGoogleUser = auth.currentUser.providerData.some(
       (provider) => provider.providerId === 'google.com'
@@ -116,7 +140,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user, profile, loading,
       loginWithEmail, registerWithEmail, loginWithGoogle, logout,
-      resendVerificationEmail, forceSignOut,
+      resendVerificationEmail, forceSignOut, deleteUnverifiedAccount,
       reauthenticateUser,
       changePassword,
       updateProfile: updateLocalProfile,

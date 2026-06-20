@@ -5,13 +5,14 @@ import { auth } from '../services/firebase';
 import './VerifyEmailPage.css';
 
 const POLL_INTERVAL_MS = 5000;
-const SESSION_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutu saioa ixteko
+const SESSION_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutu
 
 export default function VerifyEmailPage() {
-  const { user, resendVerificationEmail, forceSignOut } = useAuth();
+  const { user, resendVerificationEmail, forceSignOut, deleteUnverifiedAccount } = useAuth();
   const navigate = useNavigate();
 
   const [resendStatus, setResendStatus] = useState('idle');
+  const [cancelling, setCancelling] = useState(false);
   const finishedRef = useRef(false);
 
   useEffect(() => {
@@ -36,17 +37,24 @@ export default function VerifyEmailPage() {
     const timeout = setTimeout(async () => {
       if (finishedRef.current) return;
       finishedRef.current = true;
-      await forceSignOut();
+      await deleteUnverifiedAccount();
       navigate('/login', { replace: true, state: { sessionExpired: true } });
     }, SESSION_TIMEOUT_MS);
 
     return () => clearTimeout(timeout);
-  }, [forceSignOut, navigate]);
+  }, [deleteUnverifiedAccount, navigate]);
 
   async function handleGoToLogin() {
     finishedRef.current = true;
     await forceSignOut();
     navigate('/login', { replace: true });
+  }
+
+  async function handleWrongEmail() {
+    finishedRef.current = true;
+    setCancelling(true);
+    await deleteUnverifiedAccount();
+    navigate('/login', { replace: true, state: { accountCancelled: true } });
   }
 
   async function handleResend() {
@@ -90,8 +98,8 @@ export default function VerifyEmailPage() {
             {resendStatus === 'sending' ? 'Bidaltzen…' : 'Ez duzu bezua jaso? Berbidali'}
           </button>
 
-          <button className="btn-ghost" onClick={handleGoToLogin}>
-            Helbidea okerra idatzi duzu?
+          <button className="btn-ghost" onClick={handleWrongEmail} disabled={cancelling}>
+            {cancelling ? 'Ezabatzen…' : 'Helbidea oker idatzi duzu?'}
           </button>
         </div>
 
