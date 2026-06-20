@@ -36,7 +36,8 @@ export default function GroupDetailPage() {
     try {
       const { data } = await api.get(`/groups/${id}`);
       setGroup(data);
-      setExpenses(data.expenses || []);
+      const sortedExpenses = (data.expenses || []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setExpenses(sortedExpenses);
       setPhotoPreview(data.photoURL || null);
     } catch (err) {
       console.error(err);
@@ -69,13 +70,17 @@ export default function GroupDetailPage() {
 
   function onExpenseSaved(expense, isEdit) {
     if (isEdit) {
-      setExpenses(prev => prev.map(e => e._id === expense._id ? expense : e));
+      setExpenses(prev => {
+        const updated = prev.map(e => e._id === expense._id ? expense : e);
+        return updated.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      });
     } else {
-      setExpenses(prev => [expense, ...prev]);
+      setExpenses(prev => {
+        const updated = [expense, ...prev];
+        return updated.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      });
     }
     setShowForm(false);
-    setEditExpense(null);
-    refreshBalance();
   }
 
   function openEditFromDetail(expense) {
@@ -225,7 +230,8 @@ return (
                   <div className="gde-left">
                     <span className="gde-desc">{e.description}</span>
                     <span className="gde-meta">
-                      {e.paidBy?.displayName} · {new Date(e.date).toLocaleDateString('eu-ES')}
+                      {/* Data formato japonesa, euskerazkoaren berdina delako (YYYY/MM/DD) */}
+                      {e.paidBy?.displayName} · {new Date(e.date).toLocaleDateString('ja-JP')}
                     </span>
                   </div>
                   <div className="gde-right">

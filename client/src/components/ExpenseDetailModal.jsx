@@ -27,7 +27,9 @@ export default function ExpenseDetailModal({
   if (!show || !expense) return null;
 
   const isOwner = expense.paidBy?._id === currentUserId;
-  const formattedDate = new Date(expense.date).toLocaleDateString();
+  
+  // Data formato japonesa, euskerazkoaren berdina delako (YYYY/MM/DD)
+  const formattedDate = new Date(expense.date).toLocaleDateString('ja-JP');
 
   return (
     <>
