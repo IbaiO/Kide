@@ -1,10 +1,15 @@
-# Dependencias
+# Dependentziak
 node_modules/
 
-# Variables de entorno — NUNCA subir a git
+# Gakoak
 .env
 
-# Firebase (Fase 2)
+# Konpilazio fitxategiak
+client/dist
+client/dist/*
+
+
+# Firebase
 server/config/firebase-config.json
 
 # Logs
