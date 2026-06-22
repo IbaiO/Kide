@@ -200,7 +200,7 @@ export default function ExpenseForm({ groupId, members, expense, onSaved, onCanc
             onChange={e => { setSplitType(e.target.value); setDirtyFields(new Set()); }}
           >
             <option value="equal">Guztiek berdin</option>
-            <option value="percentage">Ehunekoka</option>
+            <option value="percentage">Ehunekoa</option>
             <option value="exact">Zenbateko zehatza</option>
           </select>
         </label>

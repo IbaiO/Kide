@@ -3,7 +3,7 @@ import './ExpenseDetailModal.css';
 
 const SPLIT_TYPE_LABELS = {
   equal: 'Berdin banatuta',
-  percentage: 'Ehunekoka',
+  percentage: 'Ehunekoa',
   exact: 'Kopuru zehatzak',
 };
 

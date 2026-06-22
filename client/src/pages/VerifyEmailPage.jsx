@@ -95,7 +95,7 @@ export default function VerifyEmailPage() {
             onClick={handleResend}
             disabled={resendStatus === 'sending'}
           >
-            {resendStatus === 'sending' ? 'Bidaltzen…' : 'Ez duzu bezua jaso? Berbidali'}
+            {resendStatus === 'sending' ? 'Bidaltzen…' : 'Ez duzu mezua jaso? Berbidali'}
           </button>
 
           <button className="btn-ghost" onClick={handleWrongEmail} disabled={cancelling}>

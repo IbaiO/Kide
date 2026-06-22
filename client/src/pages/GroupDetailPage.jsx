@@ -36,7 +36,7 @@ export default function GroupDetailPage() {
     try {
       const { data } = await api.get(`/groups/${id}`);
       setGroup(data);
-      const sortedExpenses = (data.expenses || []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const sortedExpenses = (data.expenses || []).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setExpenses(sortedExpenses);
       setPhotoPreview(data.photoURL || null);
     } catch (err) {
@@ -72,12 +72,12 @@ export default function GroupDetailPage() {
     if (isEdit) {
       setExpenses(prev => {
         const updated = prev.map(e => e._id === expense._id ? expense : e);
-        return updated.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return updated.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       });
     } else {
       setExpenses(prev => {
         const updated = [expense, ...prev];
-        return updated.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return updated.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       });
     }
     setShowForm(false);
