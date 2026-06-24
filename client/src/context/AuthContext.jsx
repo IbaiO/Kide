@@ -10,6 +10,7 @@ import {
   updatePassword,
   sendEmailVerification,
   verifyBeforeUpdateEmail,
+  sendPasswordResetEmail,
   EmailAuthProvider,
   reauthenticateWithCredential,
   reauthenticateWithPopup
@@ -148,6 +149,10 @@ export function AuthProvider({ children }) {
     return false;
   }
 
+  async function requestPasswordReset(email) {
+    return sendPasswordResetEmail(auth, email);
+  }
+
   function updateLocalProfile(updatedUser) {
     setProfile(prev => ({ ...prev, ...updatedUser }));
   }
@@ -160,6 +165,7 @@ export function AuthProvider({ children }) {
       reauthenticateUser,
       changePassword,
       changeEmail, checkEmailChangeConfirmed,
+      requestPasswordReset,
       updateProfile: updateLocalProfile,
     }}>
       {!loading && children}

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import './LoginPage.css';
 
 export default function LoginPage() {
-  const { loginWithEmail, registerWithEmail, loginWithGoogle, profile } = useAuth();
+  const { loginWithEmail, registerWithEmail, loginWithGoogle, requestPasswordReset, profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -16,6 +16,9 @@ export default function LoginPage() {
   const [error, setError]         = useState('');
   const [loading, setLoading]     = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+
+  const [resetSending, setResetSending]   = useState(false);
+  const [resetFeedback, setResetFeedback] = useState(null);
 
   function getRedirectTarget() {
     const from = location.state?.from;
@@ -61,6 +64,31 @@ export default function LoginPage() {
     }
   }
 
+  async function handleForgotPassword() {
+    setResetFeedback(null);
+
+    if (!email.trim()) {
+      setResetFeedback({ type: 'error', msg: 'Idatzi zure helbide elektronikoa.' });
+      return;
+    }
+
+    setResetSending(true);
+    try {
+      await requestPasswordReset(email.trim());
+    } catch (err) {
+      if (err.code === 'auth/invalid-email') {
+        setResetFeedback({ type: 'error', msg: 'Helbide elektroniko hori ez da baliozkoa.' });
+        setResetSending(false);
+        return;
+      }
+    }
+    setResetFeedback({
+      type: 'ok',
+      msg: 'Pasahitza berrezartzeko esteka bidali dizugu zure helbidera.',
+    });
+    setResetSending(false);
+  }
+
   function inputClass(fieldName) {
     return focusedField === fieldName ? 'input-focused' : '';
   }
@@ -76,11 +104,11 @@ export default function LoginPage() {
         <div className="login-tabs">
           <button
             className={mode === 'login' ? 'tab active' : 'tab'}
-            onClick={() => { setMode('login'); setError(''); }}
+            onClick={() => { setMode('login'); setError(''); setResetFeedback(null); }}
           >Sartu</button>
           <button
             className={mode === 'register' ? 'tab active' : 'tab'}
-            onClick={() => { setMode('register'); setError(''); }}
+            onClick={() => { setMode('register'); setError(''); setResetFeedback(null); }}
           >Erregistratu</button>
         </div>
 
@@ -117,6 +145,24 @@ export default function LoginPage() {
             className={inputClass('password')}
             required
           />
+
+          {mode === 'login' && (
+            <button
+              type="button"
+              className="login-forgot-link"
+              onClick={handleForgotPassword}
+              disabled={resetSending}
+            >
+              {resetSending ? 'Bidaltzen…' : 'Pasahitza ahaztu zaizu?'}
+            </button>
+          )}
+
+          {resetFeedback && (
+            <p className={resetFeedback.type === 'ok' ? 'login-reset-ok' : 'login-error'}>
+              {resetFeedback.msg}
+            </p>
+          )}
+
           {error && <p className="login-error">{error}</p>}
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? 'Kargatzen…' : mode === 'login' ? 'Sartu' : 'Kontua sortu'}
