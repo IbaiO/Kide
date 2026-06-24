@@ -9,6 +9,7 @@ import {
   updateProfile,
   updatePassword,
   sendEmailVerification,
+  verifyBeforeUpdateEmail,
   EmailAuthProvider,
   reauthenticateWithCredential,
   reauthenticateWithPopup
@@ -112,7 +113,7 @@ export function AuthProvider({ children }) {
   }
 
   async function reauthenticateUser(currentPassword) {
-    if (!auth.currentUser) throw new Error('No hay usuario autenticado');
+    if (!auth.currentUser) throw new Error('Erabiltzailea ez dago autentifikatuta');
 
     const isGoogleUser = auth.currentUser.providerData.some(
       (provider) => provider.providerId === 'google.com'
@@ -128,8 +129,23 @@ export function AuthProvider({ children }) {
   }
 
   async function changePassword(newPassword) {
-    if (!auth.currentUser) throw new Error('No hay ningún usuario autenticado');
+    if (!auth.currentUser) throw new Error('Erabiltzailea ez dago autentifikatuta');
     return updatePassword(auth.currentUser, newPassword);
+  }
+
+  async function changeEmail(newEmail) {
+    if (!auth.currentUser) throw new Error('Erabiltzailea ez dago autentifikatuta');
+    return verifyBeforeUpdateEmail(auth.currentUser, newEmail);
+  }
+
+  async function checkEmailChangeConfirmed(expectedEmail) {
+    if (!auth.currentUser || !expectedEmail) return false;
+    await auth.currentUser.reload();
+    if (auth.currentUser.email === expectedEmail) {
+      await syncWithBackend(auth.currentUser);
+      return true;
+    }
+    return false;
   }
 
   function updateLocalProfile(updatedUser) {
@@ -143,6 +159,7 @@ export function AuthProvider({ children }) {
       resendVerificationEmail, forceSignOut, deleteUnverifiedAccount,
       reauthenticateUser,
       changePassword,
+      changeEmail, checkEmailChangeConfirmed,
       updateProfile: updateLocalProfile,
     }}>
       {!loading && children}

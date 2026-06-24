@@ -60,7 +60,7 @@ export default function JoinGroupPage() {
       <main className="join-bg">
         <section className="join-card">
           <span className="join-icon">✓</span>
-          <h1>Jadanik kide zara</h1>
+          <h1>Talde honetako kide zara jadanik!</h1>
           <p>Dagoeneko <strong>{info.name}</strong> taldeko kidea zara.</p>
           <button className="btn-primary" onClick={() => navigate(`/groups/${info.id}`)}>
             Taldera joan

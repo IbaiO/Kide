@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../services/firebase';
@@ -15,7 +15,7 @@ function validateImageFile(file) {
 }
 
 export default function SettingsPage() {
-  const { profile, user, logout, reauthenticateUser, changePassword, updateProfile: updateCtxProfile } = useAuth();
+  const { profile, user, logout, reauthenticateUser, changePassword, changeEmail, checkEmailChangeConfirmed, updateProfile: updateCtxProfile } = useAuth();
   const { previewTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -45,6 +45,12 @@ export default function SettingsPage() {
   const [newPassword2, setNewPassword2]       = useState('');
   const [pwSaving, setPwSaving]               = useState(false);
   const [pwFeedback, setPwFeedback]           = useState(null);
+
+  const [newEmail, setNewEmail]               = useState('');
+  const [emailPassword, setEmailPassword]     = useState('');
+  const [emailSaving, setEmailSaving]         = useState(false);
+  const [emailFeedback, setEmailFeedback]     = useState(null);
+  const [pendingEmail, setPendingEmail]       = useState(null);
 
   const [deletePassword, setDeletePassword] = useState('');
   const [deleting, setDeleting]             = useState(false);
@@ -167,6 +173,56 @@ export default function SettingsPage() {
       setPwSaving(false);
     }
   }
+
+  useEffect(() => {
+    if (!pendingEmail) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const confirmed = await checkEmailChangeConfirmed(pendingEmail);
+        if (confirmed) {
+          clearInterval(interval);
+          setPendingEmail(null);
+          setEmailFeedback({ type: 'ok', msg: 'Helbide elektronikoa eguneratu da.' });
+        }
+      } catch { }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [pendingEmail, checkEmailChangeConfirmed]);
+
+  async function handleChangeEmail(e) {
+    e.preventDefault();
+    setEmailFeedback(null);
+
+    const trimmedEmail = newEmail.trim();
+    if (!trimmedEmail || trimmedEmail.toLowerCase() === profile?.email?.toLowerCase()) {
+      setEmailFeedback({ type: 'error', msg: 'Oraingo helbidea idatzi duzu, sartu beste bat.' });
+      return;
+    }
+
+    setEmailSaving(true);
+    try {
+      await reauthenticateUser(emailPassword);
+      await changeEmail(trimmedEmail);
+      setPendingEmail(trimmedEmail);
+      setEmailFeedback({
+        type: 'ok',
+        msg: `Berrespen esteka bat bidali da ${trimmedEmail} helbidera. Egiaztatu arte, oraingo helbidea (${profile?.email}) erabiliko da.`,
+      });
+      setEmailPassword('');
+    } catch (err) {
+      const isWrongPw = err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential';
+      const inUse = err.code === 'auth/email-already-in-use';
+      let msg = 'Errorea helbidea aldatzean. Saiatu berriro.';
+      if (isWrongPw) msg = 'Pasahitza ez da zuzena.';
+      else if (inUse) msg = 'Helbide hori dagoeneko erabilita dago.';
+      setEmailFeedback({ type: 'error', msg });
+    } finally {
+      setEmailSaving(false);
+    }
+  }
+
 
   async function handleDeleteAccount(e) {
     e.preventDefault();
@@ -371,6 +427,51 @@ export default function SettingsPage() {
             <div className="sp-form-actions">
               <button type="submit" className="btn-primary" disabled={pwSaving}>
                 {pwSaving ? 'Aldatzen…' : 'Aldatu'}
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
+      {/* ── Helbide elektronikoa aldatu ── */}
+      {isEmailProvider && (
+        <section className="sp-section">
+          <h3>Helbide elektronikoa aldatu</h3>
+
+          {emailFeedback && (
+            <div className={`sp-feedback sp-feedback--${emailFeedback.type}`}>{emailFeedback.msg}</div>
+          )}
+
+          {pendingEmail && (
+            <p className="sp-delete-hint">
+              Berrespen zain: <strong>{pendingEmail}</strong>. Ez baduzu mezua jaso, sartu zure pasahitza berriro eta sakatu "Aldatu" mezua berbidaltzeko.
+            </p>
+          )}
+
+          <form onSubmit={handleChangeEmail} className="sp-form">
+            <label>
+              Helbide elektroniko berria
+              <input
+                type="email"
+                value={newEmail}
+                onChange={e => setNewEmail(e.target.value)}
+                placeholder="berria@adibidea.eus"
+                required
+              />
+            </label>
+            <label>
+              Pasahitza (Egiaztapena)
+              <input
+                type="password"
+                value={emailPassword}
+                onChange={e => setEmailPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </label>
+            <div className="sp-form-actions">
+              <button type="submit" className="btn-primary" disabled={emailSaving}>
+                {emailSaving ? 'Bidaltzen…' : 'Aldatu'}
               </button>
             </div>
           </form>
