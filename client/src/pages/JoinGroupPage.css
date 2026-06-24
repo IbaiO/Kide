@@ -1,0 +1,66 @@
+.join-bg {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.join-card {
+  max-width: 420px;
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.join-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.join-card h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.join-card p {
+  color: var(--text-2);
+  font-size: 0.92rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.join-desc {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.join-question {
+  font-weight: 500;
+  color: inherit;
+  margin-top: 0.25rem;
+}
+
+.join-error {
+  color: #e5484d;
+}
+
+.join-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.join-actions button {
+  flex: 1;
+}

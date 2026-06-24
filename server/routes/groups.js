@@ -3,6 +3,7 @@ const router = express.Router();
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const Group = require('../models/Group');
 const User = require('../models/User');
 const Expense = require('../models/Expense');
@@ -239,6 +240,77 @@ router.post('/:id/leave', async (req, res) => {
 
   } catch (err) {
     console.error('POST /groups/:id/leave:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/groups/:id/invite-link
+router.get('/:id/invite-link', async (req, res) => {
+  try {
+    const user = await getMongoUser(req.user.uid);
+    const group = await Group.findOne({ _id: req.params.id, members: user._id });
+
+    if (!group) return res.status(404).json({ error: 'Taldea ez da aurkitu edo ez zara kide' });
+
+    // Tokena finkoa da: behin sortu eta beti bera izango da
+    if (!group.inviteToken) {
+      group.inviteToken = crypto.randomBytes(16).toString('hex');
+      await group.save();
+    }
+
+    return res.json({ token: group.inviteToken });
+  } catch (err) {
+    console.error('GET /groups/:id/invite-link:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/groups/join/:token  -> gonbidapenaren aurrebista (taldearen izena, dagoeneko kide den, etab.)
+router.get('/join/:token', async (req, res) => {
+  try {
+    const user = await getMongoUser(req.user.uid);
+    const group = await Group.findOne({ inviteToken: req.params.token })
+      .select('name description members')
+      .lean();
+
+    if (!group) return res.status(404).json({ error: 'Gonbidapen-esteka ez da baliozkoa' });
+
+    const alreadyMember = group.members.some(m => m.toString() === user._id.toString());
+
+    return res.json({
+      id: group._id,
+      name: group.name,
+      description: group.description,
+      alreadyMember,
+    });
+  } catch (err) {
+    console.error('GET /groups/join/:token:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/groups/join/:token  -> erabiltzaile autentifikatua taldera gehitu
+router.post('/join/:token', async (req, res) => {
+  try {
+    const user = await getMongoUser(req.user.uid);
+    const group = await Group.findOne({ inviteToken: req.params.token });
+
+    if (!group) return res.status(404).json({ error: 'Gonbidapen-esteka ez da baliozkoa' });
+
+    const alreadyMember = group.members.some(m => m.toString() === user._id.toString());
+
+    if (!alreadyMember) {
+      group.members.push(user._id);
+      await group.save();
+
+      await User.findByIdAndUpdate(user._id, {
+        $addToSet: { groups: group._id }
+      });
+    }
+
+    return res.json({ id: group._id, name: group.name, alreadyJoined: alreadyMember });
+  } catch (err) {
+    console.error('POST /groups/join/:token:', err.message);
     return res.status(500).json({ error: err.message });
   }
 });

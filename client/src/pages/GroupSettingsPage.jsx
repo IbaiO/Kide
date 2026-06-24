@@ -35,6 +35,9 @@ export default function GroupSettingsPage() {
 
   const [leaving, setLeaving] = useState(false);
 
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteCopied, setInviteCopied]   = useState(false);
+
   const [confirmation, setConfirmation] = useState({
     show: false,
     title: '',
@@ -141,6 +144,21 @@ export default function GroupSettingsPage() {
       setTimeout(() => setFeedback(''), 3000);
     } finally {
       setAddingMember(false);
+    }
+  }
+
+  async function copyInviteLink() {
+    setInviteLoading(true);
+    try {
+      const { data } = await api.get(`/groups/${id}/invite-link`);
+      await navigator.clipboard.writeText(`${window.location.origin}/join/${data.token}`);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    } catch {
+      setFeedback('Ezin izan da gonbidapen-esteka lortu.');
+      setTimeout(() => setFeedback(''), 3000);
+    } finally {
+      setInviteLoading(false);
     }
   }
 
@@ -330,13 +348,23 @@ export default function GroupSettingsPage() {
             {addingMember ? '…' : 'Gehitu'}
           </button>
         </form>
+
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={copyInviteLink}
+          disabled={inviteLoading}
+          style={{ marginTop: '0.75rem' }}
+        >
+          {inviteCopied ? 'Esteka kopiatu da' : inviteLoading ? 'Sortzen…' : 'Gonbidapen-esteka kopiatu'}
+        </button>
       </section>
 
       {isCreator && (
         <section className="gs-section" aria-label="Taldea utzi">
           <h3>Taldea utzi</h3>
           <p>Taldea utziz gero, jabetza beste kide bati pasatuko zaio eta ez duzu taldea gehiago ikusiko. Zure gastu historikoak mantenduko dira balantzea zuzena izan dadin.</p>
-          <button className="btn-outline-secondary" onClick={leaveGroup} disabled={leaving}>
+          <button className="btn-ghost" onClick={leaveGroup} disabled={leaving}>
             {leaving ? 'Uzten…' : 'Taldea utzi'}
           </button>
         </section>
@@ -354,7 +382,7 @@ export default function GroupSettingsPage() {
         <section className="gs-section" aria-label="Taldea utzi">
           <h3>Taldea utzi</h3>
           <p>Taldea utziz gero, ez duzu gehiago ikusiko. Zure gastu historikoak mantenduko dira balantzea zuzena izan dadin.</p>
-          <button className="btn-outline-secondary" onClick={leaveGroup} disabled={leaving}>
+          <button className="btn-ghost" onClick={leaveGroup} disabled={leaving}>
             {leaving ? 'Uzten…' : 'Taldea utzi'}
           </button>
         </section>

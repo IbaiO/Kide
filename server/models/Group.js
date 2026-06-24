@@ -27,6 +27,11 @@ const groupSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
+    inviteToken: {
+      type: String,
+      unique: true,
+      sparse: true, // talde zaharrek ez dute tokenik izango, gonbidapen-esteka eskatu arte
+    },
   },
   {
     timestamps: true,

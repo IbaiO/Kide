@@ -1,12 +1,13 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './LoginPage.css';
 
 export default function LoginPage() {
   const { loginWithEmail, registerWithEmail, loginWithGoogle, profile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [mode, setMode]           = useState('login'); // 'login' | 'register'
   const [email, setEmail]         = useState('');
@@ -16,12 +17,20 @@ export default function LoginPage() {
   const [loading, setLoading]     = useState(false);
   const [focusedField, setFocusedField] = useState(null);
 
+  function getRedirectTarget() {
+    const from = location.state?.from;
+    if (from?.pathname) {
+      return from.pathname + (from.search || '');
+    }
+    return '/';
+  }
+
   // GroupListPage-ra bideratu erabiltzailea dagoeneko autentifikatuta badago
   useEffect(() => {
     if (profile) {
-      navigate('/', { replace: true });
+      navigate(getRedirectTarget(), { replace: true });
     }
-  }, [profile, navigate]);
+  }, [profile, navigate, location.state]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -30,10 +39,11 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         await loginWithEmail(email, password);
+        navigate(getRedirectTarget());
       } else {
         await registerWithEmail(email, password, name);
+        navigate('/verify-email', { replace: true, state: { from: location.state?.from } });
       }
-      navigate('/');
     } catch (err) {
       setError(friendlyError(err.code));
     } finally {
@@ -45,7 +55,7 @@ export default function LoginPage() {
     setError('');
     try {
       await loginWithGoogle();
-      navigate('/');
+      navigate(getRedirectTarget());
     } catch (err) {
       setError(friendlyError(err.code));
     }

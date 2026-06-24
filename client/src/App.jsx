@@ -7,6 +7,7 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import GroupListPage from './pages/GroupListPage';
 import GroupDetailPage from './pages/GroupDetailPage';
 import GroupSettingsPage from './pages/GroupSettingsPage';
+import JoinGroupPage from './pages/JoinGroupPage';
 import SettingsPage from './pages/SettingsPage';
 import { usePWA } from './hooks/usePWA';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -141,6 +142,9 @@ export default function App() {
             } />
             <Route path="/groups/:id/settings" element={
               <PrivateRoute><GroupSettingsPage /></PrivateRoute>
+            } />
+            <Route path="/join/:token" element={
+              <PrivateRoute><JoinGroupPage /></PrivateRoute>
             } />
             <Route path="/settings" element={
               <PrivateRoute><SettingsPage /></PrivateRoute>

@@ -29,6 +29,9 @@ export default function GroupDetailPage() {
   const [addingMember, setAddingMember] = useState(false);
   const [memberFeedback, setMemberFeedback] = useState('');
 
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteCopied, setInviteCopied]   = useState(false);
+
   const [balanceVersion, setBalanceVersion] = useState(0);
   const refreshBalance = useCallback(() => setBalanceVersion(v => v + 1), []);
 
@@ -108,6 +111,21 @@ export default function GroupDetailPage() {
     }
   }
 
+  async function copyInviteLink() {
+    setInviteLoading(true);
+    try {
+      const { data } = await api.get(`/groups/${id}/invite-link`);
+      await navigator.clipboard.writeText(`${window.location.origin}/join/${data.token}`);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    } catch (err) {
+      setMemberFeedback('Ezin izan da gonbidapen-esteka lortu.');
+      setTimeout(() => setMemberFeedback(''), 3000);
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
   if (loading) return <div className="gd-loading">Kargatzen…</div>;
   if (!group)  return <div className="gd-loading">Taldea ez da aurkitu.</div>;
 
@@ -178,6 +196,18 @@ return (
             {addingMember ? '…' : 'Gehitu'}
           </button>
         </form>
+      )}
+
+      {showAddMember && (
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={copyInviteLink}
+          disabled={inviteLoading}
+          style={{ marginTop: '1rem', marginBottom: '1rem', marginLeft: 'auto', display: 'flex', justifyContent: 'flex-end' }}
+        >
+          {inviteCopied ? 'Esteka kopiatu da' : inviteLoading ? 'Sortzen…' : 'Gonbidapen-esteka kopiatu'}
+        </button>
       )}
 
       {/* Tabs: Mobiletan, bi zutabeak banatzen dira */}

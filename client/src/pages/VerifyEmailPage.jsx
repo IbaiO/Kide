@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../services/firebase';
 import './VerifyEmailPage.css';
@@ -10,6 +10,7 @@ const SESSION_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutu
 export default function VerifyEmailPage() {
   const { user, resendVerificationEmail, forceSignOut, deleteUnverifiedAccount } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [resendStatus, setResendStatus] = useState('idle');
   const [cancelling, setCancelling] = useState(false);
@@ -25,29 +26,29 @@ export default function VerifyEmailPage() {
           finishedRef.current = true;
           clearInterval(interval);
           await forceSignOut();
-          navigate('/login', { replace: true, state: { justVerified: true } });
+          navigate('/login', { replace: true, state: { justVerified: true, from: location.state?.from } });
         }
       } catch { }
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [forceSignOut, navigate]);
+  }, [forceSignOut, navigate, location.state]);
 
   useEffect(() => {
     const timeout = setTimeout(async () => {
       if (finishedRef.current) return;
       finishedRef.current = true;
       await deleteUnverifiedAccount();
-      navigate('/login', { replace: true, state: { sessionExpired: true } });
+      navigate('/login', { replace: true, state: { sessionExpired: true, from: location.state?.from } });
     }, SESSION_TIMEOUT_MS);
 
     return () => clearTimeout(timeout);
-  }, [deleteUnverifiedAccount, navigate]);
+  }, [deleteUnverifiedAccount, navigate, location.state]);
 
   async function handleGoToLogin() {
     finishedRef.current = true;
     await forceSignOut();
-    navigate('/login', { replace: true });
+    navigate('/login', { replace: true, state: { from: location.state?.from } });
   }
 
   async function handleWrongEmail() {
