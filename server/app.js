@@ -9,6 +9,7 @@ const mongoose = require('mongoose');
 const session = require('express-session');
 const { default: MongoStore } = require('connect-mongo');
 const cors = require('cors');
+const { Server } = require('socket.io');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -31,7 +32,7 @@ const allowedOrigins = [
   process.env.CLIENT_ORIGIN // .eus domeinua (Prozesuan)
 ].filter(Boolean); // Balio hutsak garbitzen ditu CLIENT_ORIGIN definituta ez badago
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
@@ -40,7 +41,9 @@ app.use(cors({
     }
   },
   credentials: true,
-}));
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -61,6 +64,40 @@ app.use(session({
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 egun (ms)
   },
 }));
+
+let server;
+
+if (process.env.NODE_ENV === 'production') {
+  try {
+    const privateKey = fs.readFileSync('/etc/letsencrypt/live/kideapp.eus/privkey.pem', 'utf8');
+    const certificate = fs.readFileSync('/etc/letsencrypt/live/kideapp.eus/fullchain.pem', 'utf8');
+    server = https.createServer({ key: privateKey, cert: certificate }, app);
+  } catch (err) {
+    console.error('Errorea ziurtagiriak irakurtzean, HTTP soilik erabiliko da:', err.message);
+    server = http.createServer(app);
+  }
+} else {
+  server = http.createServer(app);
+}
+
+const io = new Server(server, {
+  cors: corsOptions,
+});
+
+io.on('connection', (socket) => {
+  socket.on('join_group', (groupId) => {
+    if (groupId) socket.join(groupId);
+  });
+
+  socket.on('leave_group', (groupId) => {
+    if (groupId) socket.leave(groupId);
+  });
+});
+
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // Routes
 app.get('/api/health', (req, res) => {
@@ -85,33 +122,19 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Abiaraztea
-if (process.env.NODE_ENV === 'production') {
-  try {
-    const privateKey = fs.readFileSync('/etc/letsencrypt/live/kideapp.eus/privkey.pem', 'utf8');
-    const certificate = fs.readFileSync('/etc/letsencrypt/live/kideapp.eus/fullchain.pem', 'utf8');
-    const credentials = { key: privateKey, cert: certificate };
+if (server instanceof https.Server) {
+  server.listen(443, () => {
+    console.log('HTTPS zerbitzaria abian 443 portuan, Socket.io gaituta (https://kideapp.eus)');
+  });
 
-    const httpsServer = https.createServer(credentials, app);
-    httpsServer.listen(443, () => {
-      console.log('HTTPS zerbitzaria abian 443 portuan (https://kideapp.eus)');
-    });
-
-    http.createServer((req, res) => {
-      res.writeHead(301, { "Location": "https://" + req.headers['host'] + req.url });
-      res.end();
-    }).listen(80, () => {
-      console.log('HTTP bideratzea aktibo 80 portuan');
-    });
-
-  } catch (err) {
-    console.error('Errorea HTTPS zerbitzaria abiaraztean, HTTP-ra itzultzen:', err.message);
-    
-    app.listen(PORT, () => {
-      console.log(`Kide zerbitzaria http://localhost:${PORT} helbidean entzuten`);
-    });
-  }
+  http.createServer((req, res) => {
+    res.writeHead(301, { "Location": "https://" + req.headers['host'] + req.url });
+    res.end();
+  }).listen(80, () => {
+    console.log('HTTP bideratzea aktibo 80 portuan');
+  });
 } else {
-  app.listen(PORT, () => {
-    console.log(`Kide zerbitzaria http://localhost:${PORT} helbidean entzuten`);
+  server.listen(PORT, () => {
+    console.log(`Kide zerbitzaria http://localhost:${PORT} helbidean entzuten, Socket.io gaituta`);
   });
 }

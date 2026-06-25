@@ -161,6 +161,13 @@ router.post('/:id/members', async (req, res) => {
       $addToSet: { groups: group._id }
     });
 
+    if (req.io) {
+      req.io.to(req.params.id).emit('kideak_eguneratuta', {
+        groupId: req.params.id,
+        action: 'member_added'
+      });
+    }
+
     return res.json({ success: true });
   } catch (err) {
     console.error('POST /groups/:id/members:', err.message);
@@ -189,6 +196,13 @@ router.delete('/:id/members/:userId', async (req, res) => {
     await User.findByIdAndUpdate(req.params.userId, {
       $pull: { groups: group._id }
     });
+
+    if (req.io) {
+      req.io.to(req.params.id).emit('kideak_eguneratuta', {
+        groupId: req.params.id,
+        action: 'member_removed'
+      });
+    }
 
     return res.json({ success: true });
   } catch (err) {
@@ -236,6 +250,13 @@ router.post('/:id/leave', async (req, res) => {
       $pull: { groups: group._id }
     });
 
+    if (req.io) {
+      req.io.to(req.params.id).emit('kideak_eguneratuta', {
+        groupId: req.params.id,
+        action: 'member_left'
+      });
+    }
+
     return res.json({ success: true, deleted: false, message: 'Taldetik ongi irten zara.' });
 
   } catch (err) {
@@ -252,7 +273,6 @@ router.get('/:id/invite-link', async (req, res) => {
 
     if (!group) return res.status(404).json({ error: 'Taldea ez da aurkitu edo ez zara kide' });
 
-    // Tokena finkoa da: behin sortu eta beti bera izango da
     if (!group.inviteToken) {
       group.inviteToken = crypto.randomBytes(16).toString('hex');
       await group.save();
@@ -265,7 +285,7 @@ router.get('/:id/invite-link', async (req, res) => {
   }
 });
 
-// GET /api/groups/join/:token  -> gonbidapenaren aurrebista (taldearen izena, dagoeneko kide den, etab.)
+// GET /api/groups/join/:token
 router.get('/join/:token', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
@@ -289,7 +309,7 @@ router.get('/join/:token', async (req, res) => {
   }
 });
 
-// POST /api/groups/join/:token  -> erabiltzaile autentifikatua taldera gehitu
+// POST /api/groups/join/:token
 router.post('/join/:token', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
@@ -306,6 +326,13 @@ router.post('/join/:token', async (req, res) => {
       await User.findByIdAndUpdate(user._id, {
         $addToSet: { groups: group._id }
       });
+
+      if (req.io) {
+        req.io.to(group._id.toString()).emit('kideak_eguneratuta', {
+          groupId: group._id.toString(),
+          action: 'member_joined_link'
+        });
+      }
     }
 
     return res.json({ id: group._id, name: group.name, alreadyJoined: alreadyMember });

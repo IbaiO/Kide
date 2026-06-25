@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { createGroupSocket } from '../services/socket';
 import ExpenseForm from '../components/ExpenseForm';
 import Balance from '../components/Balance';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -49,8 +50,36 @@ export default function GroupDetailPage() {
     }
   }
 
-  useEffect(() => { loadGroup()
-    api.get(`/groups/${id}`)}, [id]);
+  useEffect(() => {
+    loadGroup();
+  }, [id]);
+
+  // Socket.io
+  useEffect(() => {
+    const socket = createGroupSocket();
+
+    socket.on('connect', () => {
+      socket.emit('join_group', id);
+    });
+
+    socket.on('gastuak_eguneratuta', () => {
+      loadGroup();
+      refreshBalance();
+    });
+
+    socket.on('kideak_eguneratuta', () => {
+      loadGroup();
+      refreshBalance();
+    });
+
+    socket.connect();
+
+    return () => {
+      socket.off('gastuak_eguneratuta');
+      socket.off('kideak_eguneratuta');
+      socket.disconnect();
+    };
+  }, [id, refreshBalance]);
 
   function requestDeleteExpense(expense) {
     setExpenseToDelete(expense);
@@ -161,7 +190,7 @@ export default function GroupDetailPage() {
 
   const balanceMembers = Object.values(membersMap);
 
-return (
+  return (
     <main className="gd-layout">
       <section className="top">
         <button className="btn-ghost" onClick={() => navigate(`/`)}>‹ Atzera</button>

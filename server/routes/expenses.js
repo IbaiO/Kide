@@ -77,6 +77,16 @@ async function assertMember(groupId, userId) {
   return group;
 }
 
+function notifyGroup(req, groupId, action, expenseId) {
+  if (req.io && groupId) {
+    req.io.to(groupId.toString()).emit('gastuak_eguneratuta', {
+      groupId: groupId.toString(),
+      action,
+      expenseId: expenseId ? expenseId.toString() : undefined,
+    });
+  }
+}
+
 // GET /api/expenses/group/:groupId
 router.get('/group/:groupId', async (req, res) => {
   try {
@@ -135,6 +145,8 @@ router.post('/', createExpenseRules, handleValidation, async (req, res) => {
       { path: 'paidBy', select: 'displayName photoURL' },
       { path: 'splits.user', select: 'displayName' },
     ]);
+
+    notifyGroup(req, groupId, 'created', expense._id);
 
     return res.status(201).json(expense);
   } catch (err) {
@@ -200,6 +212,8 @@ router.put('/:id', updateExpenseRules, handleValidation, async (req, res) => {
       { path: 'splits.user', select: 'displayName' },
     ]);
 
+    notifyGroup(req, expense.group, 'updated', expense._id);
+
     return res.json(expense);
   } catch (err) {
     console.error('PUT /expenses/:id:', err.message);
@@ -217,7 +231,13 @@ router.delete('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Ordaindu duenak soilik ezabatu dezake gastua' });
     }
 
+    const groupId = expense.group;
+    const expenseId = expense._id;
+
     await expense.deleteOne();
+
+    notifyGroup(req, groupId, 'deleted', expenseId);
+
     return res.json({ message: 'Gastua ezanatu da' });
   } catch (err) {
     console.error('DELETE /expenses/:id:', err.message);
