@@ -9,6 +9,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       // SW automatikoki sortu
       workbox: {
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/], // las llamadas API nunca usan el fallback
@@ -24,10 +25,11 @@ export default defineConfig({
           },
           {
             urlPattern: /^https?:\/\/.*\/api\//,
+            method: 'GET',
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
-              networkTimeoutSeconds: 5,
+              networkTimeoutSeconds: 3,
               expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
               cacheableResponse: { statuses: [0, 200] },
             },

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { usePWA } from '../hooks/usePWA';
 import api from '../services/api';
 import { createGroupSocket } from '../services/socket';
 import ExpenseForm from '../components/ExpenseForm';
@@ -13,6 +14,7 @@ export default function GroupDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { isOnline, pendingActions, syncToast } = usePWA();
 
   const [group, setGroup]       = useState(null);
   const [expenses, setExpenses] = useState([]);
@@ -67,16 +69,9 @@ export default function GroupDetailPage() {
       refreshBalance();
     });
 
-    socket.on('kideak_eguneratuta', () => {
-      loadGroup();
-      refreshBalance();
-    });
-
     socket.connect();
 
     return () => {
-      socket.off('gastuak_eguneratuta');
-      socket.off('kideak_eguneratuta');
       socket.disconnect();
     };
   }, [id, refreshBalance]);
@@ -190,7 +185,37 @@ export default function GroupDetailPage() {
 
   const balanceMembers = Object.values(membersMap);
 
-  return (
+  const groupPendingActions = pendingActions.filter(a => a.groupId === id);
+
+  const updateDrafts = new Map();
+  const createDrafts = [];
+
+  groupPendingActions.forEach(action => {
+    if (action.type === 'update' && action.expenseId) {
+      updateDrafts.set(action.expenseId, action);
+    } else {
+      createDrafts.push({
+        _id: `draft-${action.localId}`,
+        description: action.payload.description,
+        amount: action.payload.amount,
+        date: action.payload.date || new Date(action.createdAt).toISOString(),
+        createdAt: new Date(action.createdAt).toISOString(),
+        paidBy: { _id: profile?.id, displayName: profile?.displayName || 'Zu' },
+        isDraft: true,
+        draftKind: 'create',
+      });
+    }
+  });
+
+  const displayExpenses = [
+    ...expenses.map(e => updateDrafts.has(e._id)
+      ? { ...e, isDraft: true, draftKind: 'update' }
+      : e
+    ),
+    ...createDrafts,
+  ].sort((a, b) => Number(new Date(b.createdAt)) - Number(new Date(a.createdAt)));
+
+return (
     <main className="gd-layout">
       <section className="top">
         <button className="btn-ghost" onClick={() => navigate(`/`)}>‹ Atzera</button>
@@ -209,6 +234,46 @@ export default function GroupDetailPage() {
         </h1>
         <button className="btn-ghost gd-settings-btn" onClick={() => navigate(`/groups/${id}/settings`)}>⚙ Ezarpenak</button>
       </div>
+
+      {/* Konexio-egoeraren abisuak */}
+      {!isOnline && (
+        <div
+          role="status"
+          style={{
+            background: 'var(--bg-hover)', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-sm)', padding: '0.55rem 0.85rem',
+            fontSize: '0.85rem', color: 'var(--text-2)', marginBottom: '0.75rem',
+          }}
+        >
+          Konexiorik gabe zaude. Gastu berriak gailuan gorde eta konexioa berreskuratzean igoko dira.
+        </div>
+      )}
+
+      {isOnline && groupPendingActions.length > 0 && (
+        <div
+          role="status"
+          style={{
+            background: 'var(--bg-hover)', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-sm)', padding: '0.55rem 0.85rem',
+            fontSize: '0.85rem', color: 'var(--text-2)', marginBottom: '0.75rem',
+          }}
+        >
+          {groupPendingActions.length} gastu bidaltzen ari dira…
+        </div>
+      )}
+
+      {syncToast && (
+        <div
+          role="status"
+          style={{
+            background: 'rgba(72, 199, 142, 0.08)', border: '1px solid rgba(72, 199, 142, 0.25)',
+            borderRadius: 'var(--radius-sm)', padding: '0.55rem 0.85rem',
+            fontSize: '0.85rem', color: 'var(--green)', marginBottom: '0.75rem',
+          }}
+        >
+          ✓ {syncToast}
+        </div>
+      )}
 
       {memberFeedback && <div className="gd-member-feedback">{memberFeedback}</div>}
 
@@ -273,21 +338,35 @@ export default function GroupDetailPage() {
             />
           )}
 
-          {expenses.length === 0 ? (
+          {displayExpenses.length === 0 ? (
             <div className="gd-empty">Oraindik ez dago gasturik.</div>
           ) : (
             <ul className="gd-expense-list">
-              {expenses.map(e => (
+              {displayExpenses.map(e => (
                 <li
                   key={e._id}
                   className="gd-expense-card"
-                  onClick={() => setDetailExpense(e)}
+                  onClick={() => { if (!e.isDraft) setDetailExpense(e); }}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(ev) => { if (ev.key === 'Enter') setDetailExpense(e); }}
+                  onKeyDown={(ev) => { if (ev.key === 'Enter' && !e.isDraft) setDetailExpense(e); }}
                 >
                   <div className="gde-left">
-                    <span className="gde-desc">{e.description}</span>
+                    <span className="gde-desc">
+                      {e.description}
+                      {e.isDraft && (
+                        <span
+                          style={{
+                            fontSize: '0.72rem', color: 'var(--text-2)',
+                            background: 'var(--bg-hover)', border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-sm)', padding: '0.1rem 0.45rem',
+                            marginLeft: '0.5rem', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {e.draftKind === 'update' ? 'Aldaketa bidali gabe' : 'Zirriborroa'}
+                        </span>
+                      )}
+                    </span>
                     <span className="gde-meta">
                       {/* Data formato japonesa, euskerazkoaren berdina delako (YYYY/MM/DD) */}
                       {e.paidBy?.displayName} · {new Date(e.date).toLocaleDateString('ja-JP')}
@@ -295,7 +374,7 @@ export default function GroupDetailPage() {
                   </div>
                   <div className="gde-right">
                     <span className="gde-amount">{e.amount.toFixed(2)} €</span>
-                    {e.paidBy?._id === profile?.id && (
+                    {!e.isDraft && e.paidBy?._id === profile?.id && (
                       <div className="gde-actions">
                         <button
                           className="btn-icon"

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { usePWA, queueExpenseAction } from '../hooks/usePWA';
 import './ExpenseForm.css';
 
 export default function ExpenseForm({ groupId, members, expense, onSaved, onCancel }) {
   const isEdit = !!expense;
+  const { isOnline } = usePWA();
 
   const [description, setDescription] = useState(expense?.description || '');
   const [amount, setAmount]           = useState(expense?.amount?.toString() || '');
@@ -120,23 +122,42 @@ export default function ExpenseForm({ groupId, members, expense, onSaved, onCanc
     const validationError = validate();
     if (validationError) { setError(validationError); return; }
 
+    const deFactoOnline = navigator.onLine && isOnline;
+
     const activeParticipants = participants
       .filter(p => p.active)
       .map(p => ({ user: p.user, value: p.value }));
 
+    const payload = {
+      groupId,
+      description,
+      amount: parseFloat(amount),
+      date,
+      splitType,
+      participants: splitType === 'equal'
+        ? activeParticipants.map(p => ({ user: p.user }))
+        : activeParticipants,
+    };
+
+    if (!deFactoOnline) {
+      try {
+        await queueExpenseAction({
+          localId: crypto.randomUUID(),
+          type: isEdit ? 'update' : 'create',
+          groupId,
+          expenseId: isEdit ? expense._id : undefined,
+          payload,
+          createdAt: Date.now(),
+        });
+        onCancel();
+      } catch (err) {
+        setError('Ezin izan da gastua gailuan gorde.');
+      }
+      return;
+    }
+
     setSaving(true);
     try {
-      const payload = {
-        groupId,
-        description,
-        amount: parseFloat(amount),
-        date,
-        splitType,
-        participants: splitType === 'equal'
-          ? activeParticipants.map(p => ({ user: p.user }))
-          : activeParticipants,
-      };
-
       const { data } = isEdit
         ? await api.put(`/expenses/${expense._id}`, payload)
         : await api.post('/expenses', payload);
@@ -167,11 +188,18 @@ export default function ExpenseForm({ groupId, members, expense, onSaved, onCanc
   }
 
   const summary = summaryLabel();
+  const efOnline = navigator.onLine && isOnline;
 
   return (
     <div className="ef-overlay">
       <form className="ef-form" onSubmit={handleSubmit}>
         <h3>{isEdit ? 'Gastua editatu' : 'Gastua gehitu'}</h3>
+
+        {!efOnline && (
+          <p className="ef-offline-notice">
+            Konexiorik gabe zaude. Gastua gailuan gorde eta konexioa berreskuratzean bidaliko da.
+          </p>
+        )}
 
         <label>Deskribapena
           <input
@@ -252,7 +280,7 @@ export default function ExpenseForm({ groupId, members, expense, onSaved, onCanc
         <div className="ef-actions">
           <button type="button" className="btn-ghost" onClick={onCancel}>Utzi</button>
           <button type="submit" className="btn-primary" disabled={saving}>
-            {saving ? 'Gordetzen…' : isEdit ? 'Gorde' : 'Gehitu'}
+            {saving ? 'Gordetzen…' : !efOnline ? 'Gorde gailuan' : isEdit ? 'Gorde' : 'Gehitu'}
           </button>
         </div>
       </form>
