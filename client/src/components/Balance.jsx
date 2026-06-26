@@ -251,6 +251,29 @@ export default function Balance({ groupId, members, version = 0 }) {
     }
   }
 
+  function renderMemberAvatar(field) {
+    const id = typeof field === 'object' ? (field._id || field.id) : field;
+    const found = members.find(m => m._id === id);
+    const name = found ? found.displayName : (typeof field === 'object' ? field.displayName : field) || '?';
+    
+    if (found && found.photoURL) {
+      return (
+        <div className="bal-transfer-user">
+          <img src={found.photoURL} alt={name} className="bal-transfer-avatar" />
+          <span className="bal-transfer-name">{name}</span>
+        </div>
+      );
+    }
+    
+    const initial = name.trim().charAt(0).toUpperCase() || '?';
+    return (
+      <div className="bal-transfer-user">
+        <div className="bal-transfer-avatar-fallback">{initial}</div>
+        <span className="bal-transfer-name">{name}</span>
+      </div>
+    );
+  }
+
   if (loading) return <div className="bal-loading">Kargatzen…</div>;
 
   const allSettled = balances.length > 0 && balances.every(b => Math.abs(b.net) < 0.01);
@@ -306,7 +329,7 @@ export default function Balance({ groupId, members, version = 0 }) {
         )}
       </section>
 
-      {/* ── Optimizazioa (Zorrak kitatu) ── */}
+      {/* Optimizazioa (Zorrak kitatu) */}
       <section className="bal-section">
         <h3>Zorrak kitatu</h3>
         {balances.length === 0 ? (
@@ -330,10 +353,16 @@ export default function Balance({ groupId, members, version = 0 }) {
             <ul className="bal-transfers">
               {transfers.map((t, i) => (
                 <li key={i} className="bal-transfer">
-                  <span className="bal-transfer-from">{resolveName(t.from, memberMap)}</span>
-                  <span className="bal-transfer-arrow">→</span>
-                  <span className="bal-transfer-to">{resolveName(t.to, memberMap)}</span>
-                  <span className="bal-transfer-amount">{t.amount.toFixed(2)} €</span>
+                  <span className="bal-transfer-from">
+                    {renderMemberAvatar(t.from)}
+                  </span>
+                  <span className="bal-transfer-flow-center">
+                    <span className="bal-transfer-amount">{t.amount.toFixed(2)} €</span>
+                    <span className="bal-transfer-arrow">➔</span>
+                  </span>
+                  <span className="bal-transfer-to">
+                    {renderMemberAvatar(t.to)}
+                  </span>
                 </li>
               ))}
             </ul>
