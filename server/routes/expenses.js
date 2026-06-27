@@ -35,7 +35,11 @@ const splitTypeRules = body('splitType')
   .isIn(['equal', 'percentage', 'exact'])
   .withMessage("Banaketa mota 'equal', 'percentage' edo 'exact' izan behar da");
 
-// POSTerako arauak
+const receiptURLRules = body('receiptURL')
+  .optional({ nullable: true })
+  .custom((value) => value === null || typeof value === 'string')
+  .withMessage('Tiketaren URL-ak ez dauka formatu egokia');
+
 const createExpenseRules = [
   body('groupId')
     .notEmpty()
@@ -52,6 +56,7 @@ const createExpenseRules = [
     .isFloat({ gt: 0 })
     .withMessage('Zenbatekoa 0 baino handiagoa behar da'),
   splitTypeRules,
+  receiptURLRules,
 ];
 
 // PUTerako arauak (Denak aukerazkoak)
@@ -62,6 +67,7 @@ const updateExpenseRules = [
   descriptionRules,
   amountRules,
   splitTypeRules,
+  receiptURLRules,
 ];
 
 // Barne helper-ak
@@ -116,9 +122,18 @@ router.get('/group/:groupId', async (req, res) => {
 //   date?:         ISO string
 //   splitType?:    'equal' | 'percentage' | 'exact'  (default: 'equal')
 //   participants?: [{ user: id, value?: number }]
+//   receiptURL?:   string | null
 // }
 router.post('/', createExpenseRules, handleValidation, async (req, res) => {
-  const { groupId, description, amount, date, splitType = 'equal', participants } = req.body;
+  const {
+    groupId,
+    description,
+    amount,
+    date,
+    splitType = 'equal',
+    participants,
+    receiptURL,
+  } = req.body;
 
   try {
     const user = await getMongoUser(req.user.uid);
@@ -139,6 +154,7 @@ router.post('/', createExpenseRules, handleValidation, async (req, res) => {
       splitType,
       splits,
       date: date ? new Date(date) : undefined,
+      receiptURL: receiptURL || null,
     });
 
     await expense.populate([
@@ -178,7 +194,7 @@ router.get('/:id', async (req, res) => {
 // PUT /api/expenses/:id
 // Gastu bat eguneratu
 router.put('/:id', updateExpenseRules, handleValidation, async (req, res) => {
-  const { description, amount, date, splitType, participants } = req.body;
+  const { description, amount, date, splitType, participants, receiptURL } = req.body;
 
   try {
     const user = await getMongoUser(req.user.uid);
@@ -205,6 +221,7 @@ router.put('/:id', updateExpenseRules, handleValidation, async (req, res) => {
     if (amount) expense.amount = newAmount;
     if (splitType) expense.splitType = newSplitType;
     if (date) expense.date = new Date(date);
+    if (receiptURL !== undefined) expense.receiptURL = receiptURL || null;
 
     await expense.save();
     await expense.populate([

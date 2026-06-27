@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { usePWA, queueExpenseAction } from '../hooks/usePWA';
+import { storage } from '../services/firebase';
+import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import './ExpenseForm.css';
+
+const MAX_RECEIPT_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export default function ExpenseForm({ groupId, members, expense, onSaved, onCancel }) {
   const isEdit = !!expense;
   const { isOnline } = usePWA();
+  const efOnline = navigator.onLine && isOnline;
 
   const [description, setDescription] = useState(expense?.description || '');
   const [amount, setAmount]           = useState(expense?.amount?.toString() || '');
@@ -34,6 +39,14 @@ export default function ExpenseForm({ groupId, members, expense, onSaved, onCanc
         .map(m => m._id)
     );
   });
+
+  // ── Tiketaren argazkia (Drag & Drop) ───────────────────────────
+  const [receiptFile, setReceiptFile]       = useState(null);
+  const [receiptPreview, setReceiptPreview] = useState(expense?.receiptURL || null);
+  const [receiptRemoved, setReceiptRemoved] = useState(false);
+  const [isDragging, setIsDragging]         = useState(false);
+  const [receiptError, setReceiptError]     = useState('');
+  const [uploadProgress, setUploadProgress] = useState(null);
 
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
@@ -94,6 +107,63 @@ export default function ExpenseForm({ groupId, members, expense, onSaved, onCanc
     );
   }
 
+  function validateReceiptFile(file) {
+    if (!file.type.startsWith('image/')) {
+      return 'Tiketaren argazkia irudi formatukoa izan behar da (jpg, png...).';
+    }
+    if (file.size > MAX_RECEIPT_SIZE) {
+      return 'Irudia handiegia da (gehienez 5 MB).';
+    }
+    return null;
+  }
+
+  function handleReceiptFile(file) {
+    if (!file) return;
+    const validationMsg = validateReceiptFile(file);
+    if (validationMsg) {
+      setReceiptError(validationMsg);
+      return;
+    }
+    setReceiptError('');
+    setReceiptRemoved(false);
+    setReceiptFile(file);
+
+    const reader = new FileReader();
+    reader.onload = () => setReceiptPreview(reader.result);
+    reader.readAsDataURL(file);
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    if (!efOnline) return;
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(e) {
+    e.preventDefault();
+    setIsDragging(false);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setIsDragging(false);
+    if (!efOnline) return;
+    const file = e.dataTransfer.files?.[0];
+    handleReceiptFile(file);
+  }
+
+  function handleFileInputChange(e) {
+    handleReceiptFile(e.target.files?.[0]);
+    e.target.value = '';
+  }
+
+  function clearReceipt() {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setReceiptError('');
+    setReceiptRemoved(true);
+  }
+
   function validate() {
     const active = participants.filter(p => p.active);
     if (active.length === 0) return 'Gutxienez partaide bat hautatu behar duzu.';
@@ -115,14 +185,39 @@ export default function ExpenseForm({ groupId, members, expense, onSaved, onCanc
     return null;
   }
 
+  async function uploadReceiptAndGetURL() {
+    setUploadProgress(0);
+    const safeName = receiptFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const path = `receipts/${groupId}/${crypto.randomUUID()}-${safeName}`;
+    const fileRef = storageRef(storage, path);
+    const uploadTask = uploadBytesResumable(fileRef, receiptFile);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        snapshot => {
+          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          setUploadProgress(pct);
+        },
+        reject,
+        async () => {
+          try {
+            const url = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(url);
+          } catch (err) {
+            reject(err);
+          }
+        }
+      );
+    });
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
 
     const validationError = validate();
     if (validationError) { setError(validationError); return; }
-
-    const deFactoOnline = navigator.onLine && isOnline;
 
     const activeParticipants = participants
       .filter(p => p.active)
@@ -139,7 +234,7 @@ export default function ExpenseForm({ groupId, members, expense, onSaved, onCanc
         : activeParticipants,
     };
 
-    if (!deFactoOnline) {
+    if (!efOnline) {
       try {
         await queueExpenseAction({
           localId: crypto.randomUUID(),
@@ -158,6 +253,19 @@ export default function ExpenseForm({ groupId, members, expense, onSaved, onCanc
 
     setSaving(true);
     try {
+      if (receiptFile) {
+        try {
+          payload.receiptURL = await uploadReceiptAndGetURL();
+        } catch (err) {
+          setError('Ezin izan da tiketaren argazkia igo. Saiatu berriro.');
+          setSaving(false);
+          setUploadProgress(null);
+          return;
+        }
+      } else if (receiptRemoved) {
+        payload.receiptURL = null;
+      }
+
       const { data } = isEdit
         ? await api.put(`/expenses/${expense._id}`, payload)
         : await api.post('/expenses', payload);
@@ -167,6 +275,7 @@ export default function ExpenseForm({ groupId, members, expense, onSaved, onCanc
       setError(err.response?.data?.error || 'Errore bat gertatu da.');
     } finally {
       setSaving(false);
+      setUploadProgress(null);
     }
   }
 
@@ -188,7 +297,6 @@ export default function ExpenseForm({ groupId, members, expense, onSaved, onCanc
   }
 
   const summary = summaryLabel();
-  const efOnline = navigator.onLine && isOnline;
 
   return (
     <div className="ef-overlay">
@@ -221,6 +329,50 @@ export default function ExpenseForm({ groupId, members, expense, onSaved, onCanc
         <label>Data
           <input type="date" value={date} onChange={e => setDate(e.target.value)} />
         </label>
+
+        <div className="ef-receipt">
+          <span className="ef-receipt-label">Tiketaren argazkia (aukerakoa)</span>
+
+          {receiptPreview ? (
+            <div className="ef-receipt-preview">
+              <img src={receiptPreview} alt="Tiketaren aurrebista" className="ef-receipt-thumb" />
+              {efOnline && (
+                <button type="button" className="ef-receipt-remove" onClick={clearReceipt}>
+                  ✕ Kendu
+                </button>
+              )}
+            </div>
+          ) : (
+            <label
+              className={`ef-dropzone${isDragging ? ' dragging' : ''}${!efOnline ? ' disabled' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileInputChange}
+                disabled={!efOnline}
+                style={{ display: 'none' }}
+              />
+              <span>
+                {efOnline
+                  ? 'Arrastatu tiketaren argazkia hona, edo sakatu hautatzeko'
+                  : 'Konexiorik gabe ezin da argazkirik gehitu'}
+              </span>
+            </label>
+          )}
+
+          {uploadProgress !== null && (
+            <div className="ef-receipt-progress">
+              <div className="ef-receipt-progress-bar" style={{ width: `${uploadProgress}%` }} />
+              <span className="ef-receipt-progress-text">Igotzen… {uploadProgress}%</span>
+            </div>
+          )}
+
+          {receiptError && <p className="ef-error">{receiptError}</p>}
+        </div>
 
         <label>Banaketa mota
           <select

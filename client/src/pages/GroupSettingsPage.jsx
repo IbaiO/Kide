@@ -7,6 +7,7 @@ import api from '../services/api';
 import './GroupSettingsPage.css';
 import '../App.css';
 import ConfirmationModal from '../components/ConfirmationModal';
+import ImageEditorModal from '../components/ImageEditorModal';
 
 function validateImageFile(file) {
   if (!file) return null;
@@ -32,9 +33,18 @@ export default function GroupSettingsPage() {
   const [photoPreview, setPhotoPreview]     = useState(null);
   const [uploadProgress, setUploadProgress] = useState(null);
   const photoInputRef = useRef(null);
+  
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  const [showImageEditor, setShowImageEditor] = useState(false);
+  const [pendingFile, setPendingFile]         = useState(null);
+  const [editedBlob, setEditedBlob]           = useState(null);
 
   const [leaving, setLeaving] = useState(false);
-
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteCopied, setInviteCopied]   = useState(false);
 
@@ -48,13 +58,16 @@ export default function GroupSettingsPage() {
   useEffect(() => {
     api.get(`/groups/${id}`)
       .then(r => {
+        if (!isMountedRef.current) return;
         setGroup(r.data);
         setName(r.data.name);
         setDesc(r.data.description || '');
         setPhotoPreview(r.data.photoURL || null);
       })
       .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (isMountedRef.current) setLoading(false);
+      });
   }, [id]);
 
   function handlePhotoSelected(e) {
@@ -62,54 +75,94 @@ export default function GroupSettingsPage() {
     if (!file) return;
     const err = validateImageFile(file);
     if (err) { setFeedback(err); return; }
-    setPhotoPreview(URL.createObjectURL(file));
     setFeedback('');
+    setPendingFile(file);
+    setShowImageEditor(true);
+  }
+
+  function handleEditorConfirm(blob) {
+    setEditedBlob(blob);
+    
+    setPhotoPreview(prev => {
+      if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(blob);
+    });
+    
+    setShowImageEditor(false);
+    setPendingFile(null);
+  }
+
+  function handleEditorCancel() {
+    setShowImageEditor(false);
+    setPendingFile(null);
+    if (photoInputRef.current) photoInputRef.current.value = '';
+  }
+
+  function handleCancelFinalPhoto() {
+    setPhotoPreview(prev => {
+      if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return group?.photoURL || null;
+    });
+    setEditedBlob(null);
+    if (photoInputRef.current) photoInputRef.current.value = '';
   }
 
   async function handlePhotoUpload() {
-    const file = photoInputRef.current?.files?.[0];
-    if (!file) return;
-
-    const err = validateImageFile(file);
-    if (err) { setFeedback(err); return; }
+    if (!editedBlob) return;
 
     setFeedback('');
     setUploadProgress(0);
 
     try {
-      const ext        = file.name.split('.').pop();
-      const filePath   = `groups/${id}/${Date.now()}.${ext}`;
+      const filePath   = `groups/${id}/${Date.now()}.jpg`;
       const storageRef = ref(storage, filePath);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      const uploadTask = uploadBytesResumable(storageRef, editedBlob);
 
       const downloadURL = await new Promise((resolve, reject) => {
         uploadTask.on(
           'state_changed',
           snapshot => {
+            if (!isMountedRef.current) return;
             const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
             setUploadProgress(pct);
           },
-          reject,
+          (err) => {
+            if (isMountedRef.current) reject(err);
+          },
           async () => {
-            const url = await getDownloadURL(uploadTask.snapshot.ref);
-            resolve(url);
+            try {
+              const url = await getDownloadURL(uploadTask.snapshot.ref);
+              resolve(url);
+            } catch (err) {
+              reject(err);
+            }
           }
         );
       });
+
+      if (!isMountedRef.current) return;
 
       const { data } = await api.put(`/groups/${id}`, {
         name: group.name,
         description: group.description,
         photoURL: downloadURL,
       });
+
+      if (!isMountedRef.current) return;
+      
       setGroup(prev => ({ ...prev, photoURL: data.photoURL }));
       setUploadProgress(null);
+      setEditedBlob(null);
       setFeedback('Argazkia eguneratu da.');
-      setTimeout(() => setFeedback(''), 2500);
-      photoInputRef.current.value = '';
+      setTimeout(() => {
+        if (isMountedRef.current) setFeedback('');
+      }, 2500);
+      if (photoInputRef.current) photoInputRef.current.value = '';
     } catch {
-      setUploadProgress(null);
-      setFeedback('Errorea argazkia igotzerakoan. Saiatu berriro.');
+      if (isMountedRef.current) {
+        setUploadProgress(null);
+        setFeedback('Errorea argazkia igotzerakoan. Saiatu berriro.');
+      }
     }
   }
 
@@ -118,13 +171,16 @@ export default function GroupSettingsPage() {
     setSaving(true);
     try {
       const { data } = await api.put(`/groups/${id}`, { name, description: desc });
+      if (!isMountedRef.current) return;
       setGroup(prev => ({ ...prev, ...data }));
       setFeedback('Aldaketak gordeta.');
-      setTimeout(() => setFeedback(''), 2500);
+      setTimeout(() => {
+        if (isMountedRef.current) setFeedback('');
+      }, 2500);
     } catch {
-      setFeedback('Errore bat gertatu da.');
+      if (isMountedRef.current) setFeedback('Errore bat gertatu da.');
     } finally {
-      setSaving(false);
+      if (isMountedRef.current) setSaving(false);
     }
   }
 
@@ -135,15 +191,21 @@ export default function GroupSettingsPage() {
     try {
       await api.post(`/groups/${id}/members`, { email: newEmail });
       const { data } = await api.get(`/groups/${id}`);
+      if (!isMountedRef.current) return;
       setGroup(data);
       setNewEmail('');
       setFeedback('Kidea gehitu da.');
-      setTimeout(() => setFeedback(''), 2500);
+      setTimeout(() => {
+        if (isMountedRef.current) setFeedback('');
+      }, 2500);
     } catch (err) {
+      if (!isMountedRef.current) return;
       setFeedback(err.response?.data?.error || 'Ezin izan da kidea gehitu.');
-      setTimeout(() => setFeedback(''), 3000);
+      setTimeout(() => {
+        if (isMountedRef.current) setFeedback('');
+      }, 3000);
     } finally {
-      setAddingMember(false);
+      if (isMountedRef.current) setAddingMember(false);
     }
   }
 
@@ -152,13 +214,20 @@ export default function GroupSettingsPage() {
     try {
       const { data } = await api.get(`/groups/${id}/invite-link`);
       await navigator.clipboard.writeText(`${window.location.origin}/join/${data.token}`);
+      if (!isMountedRef.current) return;
       setInviteCopied(true);
-      setTimeout(() => setInviteCopied(false), 2000);
+      setTimeout(() => {
+        if (isMountedRef.current) setInviteCopied(false);
+      }, 2000);
     } catch {
-      setFeedback('Ezin izan da gonbidapen-esteka lortu.');
-      setTimeout(() => setFeedback(''), 3000);
+      if (isMountedRef.current) {
+        setFeedback('Ezin izan da gonbidapen-esteka lortu.');
+        setTimeout(() => {
+          if (isMountedRef.current) setFeedback('');
+        }, 3000);
+      }
     } finally {
-      setInviteLoading(false);
+      if (isMountedRef.current) setInviteLoading(false);
     }
   }
 
@@ -170,12 +239,14 @@ export default function GroupSettingsPage() {
       onConfirm: async () => {
         try {
           await api.delete(`/groups/${id}/members/${userId}`);
+          if (!isMountedRef.current) return;
           setGroup(prev => ({
             ...prev,
             members: prev.members.filter(m => m._id !== userId),
           }));
           setConfirmation(prev => ({ ...prev, show: false }));
         } catch (err) {
+          if (!isMountedRef.current) return;
           setFeedback(err.response?.data?.error || 'Errore bat gertatu da.');
           setConfirmation(prev => ({ ...prev, show: false }));
         }
@@ -193,8 +264,10 @@ export default function GroupSettingsPage() {
           await api.delete(`/groups/${id}`);
           navigate('/groups');
         } catch {
-          setFeedback('Ezin izan da taldea ezabatu.');
-          setConfirmation(prev => ({ ...prev, show: false }));
+          if (isMountedRef.current) {
+            setFeedback('Ezin izan da taldea ezabatu.');
+            setConfirmation(prev => ({ ...prev, show: false }));
+          }
         }
       }
     });
@@ -219,6 +292,7 @@ export default function GroupSettingsPage() {
           await api.post(`/groups/${id}/leave`);
           navigate('/groups');
         } catch (err) {
+          if (!isMountedRef.current) return;
           setFeedback(err.response?.data?.error || 'Ezin izan da taldea utzi.');
           setConfirmation(prev => ({ ...prev, show: false }));
           setLeaving(false);
@@ -270,7 +344,7 @@ export default function GroupSettingsPage() {
             </div>
           </div>
 
-          {photoInputRef.current?.files?.[0] && uploadProgress === null && (
+          {editedBlob && uploadProgress === null && (
             <div className="gs-photo-confirm">
               <button type="button" className="btn-primary" onClick={handlePhotoUpload}>
                 Argazkia gorde
@@ -278,10 +352,7 @@ export default function GroupSettingsPage() {
               <button
                 type="button"
                 className="btn-ghost"
-                onClick={() => {
-                  setPhotoPreview(group.photoURL || null);
-                  photoInputRef.current.value = '';
-                }}
+                onClick={handleCancelFinalPhoto}
               >
                 Utzi
               </button>
@@ -394,6 +465,15 @@ export default function GroupSettingsPage() {
         message={confirmation.message}
         onConfirm={confirmation.onConfirm}
         onCancel={() => setConfirmation(prev => ({ ...prev, show: false }))}
+      />
+
+      <ImageEditorModal
+        show={showImageEditor}
+        file={pendingFile}
+        shape="square"
+        title="Taldearen argazkia egokitu"
+        onConfirm={handleEditorConfirm}
+        onCancel={handleEditorCancel}
       />
     </main>
   );

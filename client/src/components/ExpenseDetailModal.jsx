@@ -66,6 +66,30 @@ export default function ExpenseDetailModal({
                   </li>
                 ))}
               </ul>
+
+              {expense.receiptURL && (
+                <div className="edm-receipt" style={{ marginTop: '0.9rem' }}>
+                  <h6 className="edm-splits-title">Tiketa</h6>
+                  <a
+                    href={expense.receiptURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-block' }}
+                  >
+                    <img
+                      src={expense.receiptURL}
+                      alt="Tiketaren argazkia"
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '220px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border)',
+                        display: 'block',
+                      }}
+                    />
+                  </a>
+                </div>
+              )}
             </div>
 
             {isOwner && (

@@ -5,6 +5,7 @@ import { storage } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../App';
 import api from '../services/api';
+import ImageEditorModal from '../components/ImageEditorModal';
 import './SettingsPage.css';
 
 function validateImageFile(file) {
@@ -25,6 +26,12 @@ export default function SettingsPage() {
   const [saving, setSaving]           = useState(false);
   const [feedback, setFeedback]       = useState(null);
 
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
   function handleThemeModeChange(e) {
     const mode = e.target.value;
     setThemeMode(mode);
@@ -37,8 +44,12 @@ export default function SettingsPage() {
   }
 
   const [photoPreview, setPhotoPreview]   = useState(profile?.photoURL || null);
-  const [uploadProgress, setUploadProgress] = useState(null); // 0-100 | null
+  const [uploadProgress, setUploadProgress] = useState(null); 
   const photoInputRef = useRef(null);
+
+  const [showImageEditor, setShowImageEditor] = useState(false);
+  const [pendingFile, setPendingFile]         = useState(null);
+  const [editedBlob, setEditedBlob]           = useState(null);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword]         = useState('');
@@ -63,40 +74,72 @@ export default function SettingsPage() {
     if (!file) return;
     const err = validateImageFile(file);
     if (err) { setFeedback({ type: 'error', msg: err }); return; }
-    setPhotoPreview(URL.createObjectURL(file));
+    setFeedback(null);
+    setPendingFile(file);
+    setShowImageEditor(true);
   }
 
-  // Irudia Firebase Storage-ra igo eta MongoDB-n erregistratu
-  async function handlePhotoUpload() {
-    const file = photoInputRef.current?.files?.[0];
-    if (!file) return;
+  function handleEditorConfirm(blob) {
+    setEditedBlob(blob);
+    
+    setPhotoPreview(prev => {
+      if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(blob);
+    });
+    
+    setShowImageEditor(false);
+    setPendingFile(null);
+  }
 
-    const err = validateImageFile(file);
-    if (err) { setFeedback({ type: 'error', msg: err }); return; }
+  function handleEditorCancel() {
+    setShowImageEditor(false);
+    setPendingFile(null);
+    if (photoInputRef.current) photoInputRef.current.value = '';
+  }
+
+  function handleCancelFinalPhoto() {
+    setPhotoPreview(prev => {
+      if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return profile?.photoURL || null;
+    });
+    setEditedBlob(null);
+    if (photoInputRef.current) photoInputRef.current.value = '';
+  }
+
+  async function handlePhotoUpload() {
+    if (!editedBlob) return;
 
     setFeedback(null);
     setUploadProgress(0);
 
     try {
-      const ext      = file.name.split('.').pop();
-      const filePath = `avatars/${user.uid}/${Date.now()}.${ext}`;
+      const filePath = `avatars/${user.uid}/${Date.now()}.jpg`;
       const storageRef = ref(storage, filePath);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      const uploadTask = uploadBytesResumable(storageRef, editedBlob);
 
       const downloadURL = await new Promise((resolve, reject) => {
         uploadTask.on(
           'state_changed',
           snapshot => {
+            if (!isMountedRef.current) return;
             const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
             setUploadProgress(pct);
           },
-          reject,
+          (err) => {
+            if (isMountedRef.current) reject(err);
+          },
           async () => {
-            const url = await getDownloadURL(uploadTask.snapshot.ref);
-            resolve(url);
+            try {
+              const url = await getDownloadURL(uploadTask.snapshot.ref);
+              resolve(url);
+            } catch (err) {
+              reject(err);
+            }
           }
         );
       });
+
+      if (!isMountedRef.current) return;
 
       const { data } = await api.put('/users/profile', {
         displayName: displayName.trim() || profile?.displayName,
@@ -105,18 +148,23 @@ export default function SettingsPage() {
         accentColor
       });
       
+      if (!isMountedRef.current) return;
+      
       if (updateCtxProfile) updateCtxProfile(data.user);
 
       setUploadProgress(null);
+      setEditedBlob(null);
       setFeedback({ type: 'ok', msg: 'Argazkia eguneratu da.' });
+      if (photoInputRef.current) photoInputRef.current.value = '';
     } catch (error) {
       console.error(error);
-      setUploadProgress(null);
-      setFeedback({ type: 'error', msg: 'Errorea argazkia igotzerakoan. Saiatu berriro.' });
+      if (isMountedRef.current) {
+        setUploadProgress(null);
+        setFeedback({ type: 'error', msg: 'Errorea argazkia igotzerakoan. Saiatu berriro.' });
+      }
     }
   }
 
-  // Profila eguneratu
   async function handleSaveName(e) {
     e.preventDefault();
     if (!displayName.trim()) return;
@@ -130,13 +178,14 @@ export default function SettingsPage() {
         accentColor
       });
       
+      if (!isMountedRef.current) return;
       updateCtxProfile(data.user);
       setFeedback({ type: 'ok', msg: 'Profila ongi eguneratu da.' });
     } catch (err) {
       console.error(err);
-      setFeedback({ type: 'error', msg: 'Ezin izan da profila gorde.' });
+      if (isMountedRef.current) setFeedback({ type: 'error', msg: 'Ezin izan da profila gorde.' });
     } finally {
-      setSaving(false);
+      if (isMountedRef.current) setSaving(false);
     }
   }
 
@@ -157,11 +206,13 @@ export default function SettingsPage() {
     try {
       await reauthenticateUser(currentPassword);
       await changePassword(newPassword);
+      if (!isMountedRef.current) return;
       setPwFeedback({ type: 'ok', msg: 'Pasahitza aldatu da.' });
       setCurrentPassword('');
       setNewPassword('');
       setNewPassword2('');
     } catch (err) {
+      if (!isMountedRef.current) return;
       const isWrongPw = err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential';
       setPwFeedback({
         type: 'error',
@@ -170,7 +221,7 @@ export default function SettingsPage() {
           : 'Errorea aldatzean. Egiaztatu datuak eta saiatu berriro.',
       });
     } finally {
-      setPwSaving(false);
+      if (isMountedRef.current) setPwSaving(false);
     }
   }
 
@@ -180,7 +231,7 @@ export default function SettingsPage() {
     const interval = setInterval(async () => {
       try {
         const confirmed = await checkEmailChangeConfirmed(pendingEmail);
-        if (confirmed) {
+        if (confirmed && isMountedRef.current) {
           clearInterval(interval);
           setPendingEmail(null);
           setEmailFeedback({ type: 'ok', msg: 'Helbide elektronikoa eguneratu da.' });
@@ -205,6 +256,7 @@ export default function SettingsPage() {
     try {
       await reauthenticateUser(emailPassword);
       await changeEmail(trimmedEmail);
+      if (!isMountedRef.current) return;
       setPendingEmail(trimmedEmail);
       setEmailFeedback({
         type: 'ok',
@@ -212,6 +264,7 @@ export default function SettingsPage() {
       });
       setEmailPassword('');
     } catch (err) {
+      if (!isMountedRef.current) return;
       const isWrongPw = err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential';
       const inUse = err.code === 'auth/email-already-in-use';
       let msg = 'Errorea helbidea aldatzean. Saiatu berriro.';
@@ -219,10 +272,9 @@ export default function SettingsPage() {
       else if (inUse) msg = 'Helbide hori dagoeneko erabilita dago.';
       setEmailFeedback({ type: 'error', msg });
     } finally {
-      setEmailSaving(false);
+      if (isMountedRef.current) setEmailSaving(false);
     }
   }
-
 
   async function handleDeleteAccount(e) {
     e.preventDefault();
@@ -237,6 +289,7 @@ export default function SettingsPage() {
       navigate('/login', { replace: true });
     } catch (err) {
       console.error(err);
+      if (!isMountedRef.current) return;
       const isWrongPw = err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential';
       const isPopupClosed = err.code === 'auth/popup-closed-by-user';
 
@@ -262,7 +315,7 @@ export default function SettingsPage() {
         <h1>Nire ezarpenak</h1>
       </section>
 
-      {/* ── Profila: Izena, irudia, gaiak */}
+      {/* Profila: Izena, irudia, gaiak */}
       <section className="sp-section">
         <h3>Profila</h3>
 
@@ -298,7 +351,7 @@ export default function SettingsPage() {
           onChange={handlePhotoSelected}
         />
 
-        {photoInputRef.current?.files?.[0] && uploadProgress === null && (
+        {editedBlob && uploadProgress === null && (
           <div className="sp-photo-actions">
             <button type="button" className="btn-primary" onClick={handlePhotoUpload}>
               Argazkia gorde
@@ -306,10 +359,7 @@ export default function SettingsPage() {
             <button
               type="button"
               className="btn-ghost"
-              onClick={() => {
-                setPhotoPreview(profile?.photoURL || null);
-                photoInputRef.current.value = '';
-              }}
+              onClick={handleCancelFinalPhoto}
             >
               Utzi
             </button>
@@ -384,7 +434,7 @@ export default function SettingsPage() {
         </form>
       </section>
 
-      {/* ── Pasahitza aldatu ── */}
+      {/* Pasahitza aldatu */}
       {isEmailProvider && (
         <section className="sp-section">
           <h3>Pasahitza aldatu</h3>
@@ -433,7 +483,7 @@ export default function SettingsPage() {
         </section>
       )}
 
-      {/* ── Helbide elektronikoa aldatu ── */}
+      {/* Helbide elektronikoa aldatu */}
       {isEmailProvider && (
         <section className="sp-section">
           <h3>Helbide elektronikoa aldatu</h3>
@@ -478,7 +528,7 @@ export default function SettingsPage() {
         </section>
       )}
 
-      {/* ── Kontua ezabatu ── */}
+      {/* Kontua ezabatu */}
       <section className="sp-section sp-danger-zone">
         <h3>ADI!</h3>
         <p>Kontua behin betiko ezabatuko da. Ekintza hau ezin da desegin.</p>
@@ -526,6 +576,15 @@ export default function SettingsPage() {
           </form>
         )}
       </section>
+
+      <ImageEditorModal
+        show={showImageEditor}
+        file={pendingFile}
+        shape="circle"
+        title="Profil argazkia egokitu"
+        onConfirm={handleEditorConfirm}
+        onCancel={handleEditorCancel}
+      />
     </main>
   );
 }

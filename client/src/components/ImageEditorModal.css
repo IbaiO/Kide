@@ -1,0 +1,84 @@
+.iem-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.iem-dialog {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.iem-dialog h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-1);
+  margin: 0;
+}
+
+.iem-canvas-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.iem-canvas {
+  border-radius: var(--radius-sm);
+  touch-action: none;
+  cursor: grab;
+  background: var(--bg-hover);
+}
+.iem-canvas:active { cursor: grabbing;}
+
+.iem-error {
+  color: var(--red);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.iem-zoom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--text-2);
+}
+.iem-zoom input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.iem-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.iem-progress-canvas {
+  display: block;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.iem-progress-label {
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+
+.iem-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
