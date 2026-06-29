@@ -151,6 +151,10 @@ export default function GroupSettingsPage() {
       if (!isMountedRef.current) return;
       
       setGroup(prev => ({ ...prev, photoURL: data.photoURL }));
+      setPhotoPreview(prev => {
+        if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return data.photoURL;
+      });
       setUploadProgress(null);
       setEditedBlob(null);
       setFeedback('Argazkia eguneratu da.');

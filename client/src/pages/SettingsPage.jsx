@@ -106,6 +106,34 @@ export default function SettingsPage() {
     if (photoInputRef.current) photoInputRef.current.value = '';
   }
 
+  async function uploadEditedPhoto(blob) {
+    const filePath = `avatars/${user.uid}/${Date.now()}.jpg`;
+    const storageRef = ref(storage, filePath);
+    const uploadTask = uploadBytesResumable(storageRef, blob);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        snapshot => {
+          if (!isMountedRef.current) return;
+          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          setUploadProgress(pct);
+        },
+        (err) => {
+          if (isMountedRef.current) reject(err);
+        },
+        async () => {
+          try {
+            const url = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(url);
+          } catch (err) {
+            reject(err);
+          }
+        }
+      );
+    });
+  }
+
   async function handlePhotoUpload() {
     if (!editedBlob) return;
 
@@ -113,31 +141,7 @@ export default function SettingsPage() {
     setUploadProgress(0);
 
     try {
-      const filePath = `avatars/${user.uid}/${Date.now()}.jpg`;
-      const storageRef = ref(storage, filePath);
-      const uploadTask = uploadBytesResumable(storageRef, editedBlob);
-
-      const downloadURL = await new Promise((resolve, reject) => {
-        uploadTask.on(
-          'state_changed',
-          snapshot => {
-            if (!isMountedRef.current) return;
-            const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-            setUploadProgress(pct);
-          },
-          (err) => {
-            if (isMountedRef.current) reject(err);
-          },
-          async () => {
-            try {
-              const url = await getDownloadURL(uploadTask.snapshot.ref);
-              resolve(url);
-            } catch (err) {
-              reject(err);
-            }
-          }
-        );
-      });
+      const downloadURL = await uploadEditedPhoto(editedBlob);
 
       if (!isMountedRef.current) return;
 
@@ -152,6 +156,10 @@ export default function SettingsPage() {
       
       if (updateCtxProfile) updateCtxProfile(data.user);
 
+      setPhotoPreview(prev => {
+        if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return downloadURL;
+      });
       setUploadProgress(null);
       setEditedBlob(null);
       setFeedback({ type: 'ok', msg: 'Argazkia eguneratu da.' });
@@ -171,21 +179,41 @@ export default function SettingsPage() {
     setSaving(true);
     setFeedback(null);
     try {
+      let photoURL = profile?.photoURL || null;
+
+      if (editedBlob) {
+        setUploadProgress(0);
+        photoURL = await uploadEditedPhoto(editedBlob);
+      }
+
       const { data } = await api.put('/users/profile', { 
         displayName: displayName.trim(),
-        photoURL: photoPreview,
+        photoURL,
         themeMode,
         accentColor
       });
       
       if (!isMountedRef.current) return;
       updateCtxProfile(data.user);
+
+      if (editedBlob) {
+        setPhotoPreview(prev => {
+          if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+          return photoURL;
+        });
+        setEditedBlob(null);
+        if (photoInputRef.current) photoInputRef.current.value = '';
+      }
+
       setFeedback({ type: 'ok', msg: 'Profila ongi eguneratu da.' });
     } catch (err) {
       console.error(err);
       if (isMountedRef.current) setFeedback({ type: 'error', msg: 'Ezin izan da profila gorde.' });
     } finally {
-      if (isMountedRef.current) setSaving(false);
+      if (isMountedRef.current) {
+        setSaving(false);
+        setUploadProgress(null);
+      }
     }
   }
 
