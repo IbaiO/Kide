@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [mode, setMode]           = useState('login'); // 'login' | 'register'
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName]           = useState('');
   const [error, setError]         = useState('');
   const [loading, setLoading]     = useState(false);
@@ -38,6 +39,12 @@ export default function LoginPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+
+    if (mode === 'register' && password !== confirmPassword) {
+      setError('Pasahitzak ez datoz bat.');
+      return;
+    }
+
     setLoading(true);
     try {
       if (mode === 'login') {
@@ -104,11 +111,11 @@ export default function LoginPage() {
         <div className="login-tabs">
           <button
             className={mode === 'login' ? 'tab active' : 'tab'}
-            onClick={() => { setMode('login'); setError(''); setResetFeedback(null); }}
+            onClick={() => { setMode('login'); setError(''); setResetFeedback(null); setConfirmPassword(''); }}
           >Sartu</button>
           <button
             className={mode === 'register' ? 'tab active' : 'tab'}
-            onClick={() => { setMode('register'); setError(''); setResetFeedback(null); }}
+            onClick={() => { setMode('register'); setError(''); setResetFeedback(null); setConfirmPassword(''); }}
           >Erregistratu</button>
         </div>
 
@@ -145,6 +152,19 @@ export default function LoginPage() {
             className={inputClass('password')}
             required
           />
+
+          {mode === 'register' && (
+            <input
+              type="password"
+              placeholder="Berretsi pasahitza"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              onFocus={() => setFocusedField('confirmPassword')}
+              onBlur={() => setFocusedField(null)}
+              className={inputClass('confirmPassword')}
+              required
+            />
+          )}
 
           {mode === 'login' && (
             <button
