@@ -36,7 +36,7 @@ export default function ExpenseDetailModal({
   const receiverName = receiverSplit?.user?.displayName || 'Taldekidea';
 
   const modalTitle = isSettlement
-    ? `${expense.paidBy?.displayName || '?'}ek ${receiverName}ri ordaindu dio`
+    ? `${expense.paidBy?.displayName || '?'}(e)k ${receiverName}(e)ri ordaindu dio`
     : expense.description;
 
   return (

@@ -221,7 +221,7 @@ export default function GroupDetailPage() {
     const receiverId = e.splits?.[0]?.user?._id || e.splits?.[0]?.user;
     const receiver = balanceMembers.find(m => m._id === receiverId);
     const receiverName = receiver?.displayName || '?';
-    return `${payerName}ek ${receiverName}ri ordaindu dio`;
+    return `${payerName}(e)k ${receiverName}(e)ri ordaindu dio`;
   }
 
 return (
