@@ -92,17 +92,18 @@
   border-radius: var(--radius-sm, 6px);
   padding: 0.75rem 0.5rem;
   font-size: 0.9rem;
+  gap: 0.25rem;
 }
 
 .bal-transfer-from {
-  width: 35%;
+  width: 30%;
   display: flex;
   justify-content: center;
   overflow: hidden;
 }
 
 .bal-transfer-to {
-  width: 35%;
+  width: 30%;
   display: flex;
   justify-content: center;
   overflow: hidden;
@@ -160,7 +161,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 30%;
+  width: 20%;
   gap: 0.15rem;
 }
 
@@ -181,6 +182,24 @@
   border-radius: 4px;
   white-space: nowrap;
   word-break: keep-all;
+}
+
+.btn-settle {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--green);
+  color: var(--green);
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+.btn-settle:hover {
+  background-color: var(--green);
+  color: #fff;
 }
 
 .bal-recalc {

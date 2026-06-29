@@ -10,6 +10,21 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
+.edm-content.edm-settlement { border-left: 4px solid var(--green); }
+
+.edm-settlement-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--green);
+  font-weight: 700;
+  background: rgba(46, 125, 50, 0.12);
+  border: 1px solid rgba(46, 125, 50, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
 
 .edm-header,
 .edm-footer {
@@ -72,16 +87,22 @@
   padding: 0;
 }
 
+.edm-splits-sect { margin-top: 0.75rem; }
+
 .edm-split-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   background: var(--bg-hover);
   border-radius: calc(var(--radius) - 4px);
   padding: 0.5rem 0.75rem;
   font-size: 0.9rem;
 }
 
+.edm-split-name { color: var(--text-1); }
+
 .edm-split-amount {
   font-family: 'DM Mono', monospace;
   font-weight: 500;
+  color: var(--text-1);
 }

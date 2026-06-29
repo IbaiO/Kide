@@ -133,6 +133,7 @@ router.post('/', createExpenseRules, handleValidation, async (req, res) => {
     splitType = 'equal',
     participants,
     receiptURL,
+    isSettlement
   } = req.body;
 
   try {
@@ -155,6 +156,7 @@ router.post('/', createExpenseRules, handleValidation, async (req, res) => {
       splits,
       date: date ? new Date(date) : undefined,
       receiptURL: receiptURL || null,
+      isSettlement: isSettlement || false
     });
 
     await expense.populate([

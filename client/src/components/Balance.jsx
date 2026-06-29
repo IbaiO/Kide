@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '../services/api';
+import SettleDebtForm from './SettleDebtForm';
 import './Balance.css';
 
 function resolveName(field, memberMap) {
@@ -142,7 +143,7 @@ function drawBalanceChart(canvas, balances, memberMap, activeId, barsRef) {
   barsRef.current = newBars;
 }
 
-export default function Balance({ groupId, members, version = 0 }) {
+export default function Balance({ groupId, members, version = 0, onRefresh, currentUserId }) {
   const [balances, setBalances]     = useState([]);
   const [transfers, setTransfers]   = useState(null);
   const [loading, setLoading]       = useState(true);
@@ -152,6 +153,8 @@ export default function Balance({ groupId, members, version = 0 }) {
 
   const [activeId, setActiveId] = useState(null);
   const [tooltip, setTooltip]   = useState(null);
+
+  const [settleTransfer, setSettleTransfer] = useState(null);
 
   const canvasRef = useRef(null);
   const barsRef = useRef([]);
@@ -249,6 +252,12 @@ export default function Balance({ groupId, members, version = 0 }) {
     } finally {
       setOptimizing(false);
     }
+  }
+
+  function handleSettleSaved() {
+    setSettleTransfer(null);
+    setTransfers(null);
+    if (onRefresh) onRefresh();
   }
 
   function renderMemberAvatar(field) {
@@ -363,6 +372,18 @@ export default function Balance({ groupId, members, version = 0 }) {
                   <span className="bal-transfer-to">
                     {renderMemberAvatar(t.to)}
                   </span>
+                  {currentUserId && (() => {
+                    const fromId = typeof t.from === 'object' ? (t.from._id || t.from.id) : t.from;
+                    return fromId === currentUserId ? (
+                      <button
+                        className="btn-settle"
+                        onClick={() => setSettleTransfer(t)}
+                        title="Ordainketa erregistratu"
+                      >
+                        Ordaindu
+                      </button>
+                    ) : null;
+                  })()}
                 </li>
               ))}
             </ul>
@@ -372,6 +393,16 @@ export default function Balance({ groupId, members, version = 0 }) {
           </>
         )}
       </section>
+
+      {settleTransfer && (
+        <SettleDebtForm
+          groupId={groupId}
+          transfer={settleTransfer}
+          members={members}
+          onSaved={handleSettleSaved}
+          onClose={() => setSettleTransfer(null)}
+        />
+      )}
     </div>
   );
 }

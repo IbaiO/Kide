@@ -215,6 +215,15 @@ export default function GroupDetailPage() {
     ...createDrafts,
   ].sort((a, b) => Number(new Date(b.createdAt)) - Number(new Date(a.createdAt)));
 
+  function buildSettlementLabel(e) {
+    if (!e.isSettlement) return null;
+    const payerName = e.paidBy?.displayName || '?';
+    const receiverId = e.splits?.[0]?.user?._id || e.splits?.[0]?.user;
+    const receiver = balanceMembers.find(m => m._id === receiverId);
+    const receiverName = receiver?.displayName || '?';
+    return `${payerName}ek ${receiverName}i ordaindu dio`;
+  }
+
 return (
     <main className="gd-layout">
       <section className="top">
@@ -342,64 +351,81 @@ return (
             <div className="gd-empty">Oraindik ez dago gasturik.</div>
           ) : (
             <ul className="gd-expense-list">
-              {displayExpenses.map(e => (
-                <li
-                  key={e._id}
-                  className="gd-expense-card"
-                  onClick={() => { if (!e.isDraft) setDetailExpense(e); }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(ev) => { if (ev.key === 'Enter' && !e.isDraft) setDetailExpense(e); }}
-                >
-                  <div className="gde-left">
-                    <span className="gde-desc">
-                      {e.description}
-                      {e.isDraft && (
-                        <span
-                          style={{
-                            fontSize: '0.72rem', color: 'var(--text-2)',
-                            background: 'var(--bg-hover)', border: '1px solid var(--border)',
-                            borderRadius: 'var(--radius-sm)', padding: '0.1rem 0.45rem',
-                            marginLeft: '0.5rem', whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {e.draftKind === 'update' ? 'Aldaketa bidali gabe' : 'Zirriborroa'}
-                        </span>
+              {displayExpenses.map(e => {
+                const isSettlement = !!e.isSettlement;
+                const settlementLabel = buildSettlementLabel(e);
+
+                return (
+                  <li
+                    key={e._id}
+                    className={`gd-expense-card${isSettlement ? ' is-settlement' : ''}`}
+                    onClick={() => { if (!e.isDraft) setDetailExpense(e); }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(ev) => { if (ev.key === 'Enter' && !e.isDraft) setDetailExpense(e); }}
+                  >
+                    <div className="gde-left">
+                      <span className="gde-desc">
+                        {isSettlement ? (
+                          // Settlement-etan mezua euskeraz
+                          <>
+                            {settlementLabel}
+                            <span className="gde-settlement-label">Zorraren ordainketa</span>
+                          </>
+                        ) : (
+                          <>
+                            {e.description}
+                            {e.isDraft && (
+                              <span
+                                style={{
+                                  fontSize: '0.72rem', color: 'var(--text-2)',
+                                  background: 'var(--bg-hover)', border: '1px solid var(--border)',
+                                  borderRadius: 'var(--radius-sm)', padding: '0.1rem 0.45rem',
+                                  marginLeft: '0.5rem', whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {e.draftKind === 'update' ? 'Aldaketa bidali gabe' : 'Zirriborroa'}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </span>
+                      <span className="gde-meta">
+                        {/* Data formato japonesa, euskerazkoaren berdina delako (YYYY/MM/DD) */}
+                        {e.paidBy?.displayName} · {new Date(e.date).toLocaleDateString('ja-JP')}
+                      </span>
+                    </div>
+                    <div className="gde-right">
+                      <span className="gde-amount">{e.amount.toFixed(2)} €</span>
+                      {!e.isDraft && e.paidBy?._id === profile?.id && (
+                        <div className="gde-actions">
+                          {!isSettlement && (
+                            <button
+                              className="btn-icon"
+                              onClick={ev => { ev.stopPropagation(); setEditExpense(e); setShowForm(true); }}
+                            >
+                              ✏
+                            </button>
+                          )}
+                          <button
+                            className="btn-icon danger"
+                            onClick={ev => { ev.stopPropagation(); requestDeleteExpense(e); }}
+                          >
+                            ✕
+                          </button>
+                        </div>
                       )}
-                    </span>
-                    <span className="gde-meta">
-                      {/* Data formato japonesa, euskerazkoaren berdina delako (YYYY/MM/DD) */}
-                      {e.paidBy?.displayName} · {new Date(e.date).toLocaleDateString('ja-JP')}
-                    </span>
-                  </div>
-                  <div className="gde-right">
-                    <span className="gde-amount">{e.amount.toFixed(2)} €</span>
-                    {!e.isDraft && e.paidBy?._id === profile?.id && (
-                      <div className="gde-actions">
-                        <button
-                          className="btn-icon"
-                          onClick={ev => { ev.stopPropagation(); setEditExpense(e); setShowForm(true); }}
-                        >
-                          ✏
-                        </button>
-                        <button
-                          className="btn-icon danger"
-                          onClick={ev => { ev.stopPropagation(); requestDeleteExpense(e); }}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </li>
-              ))}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
 
         {/* Eskuin zutabea: Balantzeak */}
         <aside className={`col-12 col-xl-5 ${!showBalantzea ? 'd-none d-xl-block' : ''}`} aria-label="Taldearen balantzea">
-          <Balance groupId={id} members={balanceMembers} version={balanceVersion} />
+          <Balance groupId={id} members={balanceMembers} version={balanceVersion} onRefresh={refreshBalance} currentUserId={profile?.id} />
         </aside>
 
       </div>

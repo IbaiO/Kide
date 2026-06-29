@@ -138,6 +138,30 @@
 }
 .gd-expense-card:hover { background-color: var(--bg-hover);}
 
+.gd-expense-card.is-settlement {
+  background: rgba(46, 125, 50, 0.06);
+  border-color: rgba(46, 125, 50, 0.3);
+  border-left: 3px solid var(--green);
+}
+.gd-expense-card.is-settlement:hover {
+  background: rgba(46, 125, 50, 0.1);
+}
+
+.gde-settlement-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  color: var(--green);
+  font-weight: 600;
+  background: rgba(46, 125, 50, 0.12);
+  border: 1px solid rgba(46, 125, 50, 0.25);
+  border-radius: var(--radius-sm, 4px);
+  padding: 0.1rem 0.4rem;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
+
 .gde-left {
   display: flex;
   flex-direction: column;gap: 0.2rem;
@@ -163,6 +187,11 @@
   font-weight: 600;
   font-size: 1rem;
   font-family: 'DM Mono', monospace;
+}
+
+/* Settlement-etan zenbatekoa berdea */
+.is-settlement .gde-amount {
+  color: var(--green);
 }
 
 .gde-actions {
