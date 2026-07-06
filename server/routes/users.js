@@ -21,7 +21,7 @@ router.post('/register', async (req, res) => {
 
     const finalPhotoURL = existingUser?.photoURL || picture || null;
 
-    let finalDisplayName = name || manualDisplayName || existingUser?.displayName || email.split('@')[0];
+    let finalDisplayName = existingUser?.displayName || name || manualDisplayName || email.split('@')[0];
 
     const user = await User.findOneAndUpdate(
       { firebaseUid: uid },
@@ -65,7 +65,7 @@ router.post('/logout', (req, res) => {
 });
 
 // PUT /api/users/profile
-// displayName eta photoURL aukeratutako koloretara egokitu MongoDB-n.
+// displayName eta photoURL aukeratutako koloretara egokitu MongoDB-n eta Firebase-n.
 router.put('/profile', verifyToken, async (req, res) => {
   const { displayName, photoURL, themeMode, accentColor } = req.body;
 
@@ -86,6 +86,10 @@ router.put('/profile', verifyToken, async (req, res) => {
     );
 
     if (!user) return res.status(404).json({ error: 'Ez da erabiltzailea aurkitu' });
+
+    await admin.auth().updateUser(req.user.uid, {
+      displayName: displayName.trim()
+    });
 
     return res.json({
       message: 'Profila ongi eguneratu da',
