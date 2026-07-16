@@ -21,11 +21,58 @@ async function getMongoUser(firebaseUid) {
 router.get('/', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
-    const groups = await Group.find({ members: user._id })
-      .sort({ updatedAt: -1 })
-      .populate('members', 'displayName email photoURL')
-      .populate('createdBy', 'displayName')
-      .lean();
+
+    const groups = await Group.aggregate([
+      { $match: { members: user._id } },
+      {
+        $lookup: {
+          from: 'expenses',
+          localField: '_id',
+          foreignField: 'group',
+          as: 'groupExpenses'
+        }
+      },
+
+      {
+        $addFields: {
+          lastExpenseDate: { $max: '$groupExpenses.date' }
+        }
+      },
+      {
+        $addFields: {
+          sortDate: { $ifNull: ['$lastExpenseDate', '$updatedAt'] }
+        }
+      },
+      { $sort: { sortDate: -1 } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'members',
+          foreignField: '_id',
+          as: 'members'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'createdBy',
+          foreignField: '_id',
+          as: 'createdBy'
+        }
+      },
+      { $unwind: { path: '$createdBy', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          groupExpenses: 0,
+          lastExpenseDate: 0,
+          sortDate: 0,
+          'members.password': 0,
+          'members.groups': 0,
+          'createdBy.password': 0,
+          'createdBy.groups': 0
+        }
+      }
+    ]);
 
     return res.json(groups);
   } catch (err) {
