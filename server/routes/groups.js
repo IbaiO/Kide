@@ -22,6 +22,7 @@ router.get('/', async (req, res) => {
   try {
     const user = await getMongoUser(req.user.uid);
     const groups = await Group.find({ members: user._id })
+      .sort({ updatedAt: -1 })
       .populate('members', 'displayName email photoURL')
       .populate('createdBy', 'displayName')
       .lean();
