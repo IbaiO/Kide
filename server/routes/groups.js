@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
 
       {
         $addFields: {
-          lastExpenseDate: { $max: '$groupExpenses.date' }
+          lastExpenseDate: { $max: '$groupExpenses.createdAt' } 
         }
       },
       {
