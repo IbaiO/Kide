@@ -19,13 +19,9 @@ def optimizazioa(balantz):
     x_vars = [[pulp.LpVariable(f"x_{i}_{j}", lowBound=0, cat='Continuous') for j in range(n)] for i in range(n)]
     t_vars = [[pulp.LpVariable(f"t_{i}_{j}", cat='Binary') for j in range(n)] for i in range(n)]
 
-    # Helburu-funtzioak
-    # 1. mailakoa: min Z1 = Σ_ij t_ij   (transferentzia kopurua)
-    # 2. mailakoa: min Z2 = Σ_ij x_ij   (mugitutako diru-fluxu osoa)
-    transfers_expr = pulp.lpSum(t_vars[i][j] for i in range(n) for j in range(n))
-    flow_expr = pulp.lpSum(x_vars[i][j] for i in range(n) for j in range(n))
-
-    prob += transfers_expr, 'MinTransfers'
+    # Optimizazio-funtzioa sortu
+    # min Z = Σ_ij t_ij
+    prob += pulp.lpSum(t_vars[i][j] for i in range(n) for j in range(n)), 'MinTransfers'
     for i in range(n):
         # Σ_j x_ji - Σ_j x_ij == b_i
         prob += (pulp.lpSum(x_vars[j][i] for j in range(n)) - pulp.lpSum(x_vars[i][j] for j in range(n)) == b[users[i]]), f"balance_{users[i]}"
@@ -40,19 +36,7 @@ def optimizazioa(balantz):
 
     # Ebatzi
     solver = pulp.PULP_CBC_CMD(msg=False)
-
-    # 1. etapa: transferentzia kopuru minimoa
     prob.solve(solver)
-    if pulp.LpStatus[prob.status] != 'Optimal':
-        raise RuntimeError(f"Ez da soluzio optimorik aurkitu: {pulp.LpStatus[prob.status]}")
-    min_transfers = int(round(pulp.value(transfers_expr) or 0))
-
-    # 2. etapa: transferentzia kopurua finkatu eta fluxu osoa minimizatu (berdinketa-hausle gisa)
-    prob += transfers_expr <= min_transfers, 'KeepMinTransfers'
-    prob.setObjective(flow_expr)
-    prob.solve(solver)
-    if pulp.LpStatus[prob.status] != 'Optimal':
-        raise RuntimeError(f"Ez da soluzio optimorik aurkitu (2. etapa): {pulp.LpStatus[prob.status]}")
 
     # Matrize finalak
     x_matrix = [[pulp.value(x_vars[i][j]) or 0.0 for j in range(n)] for i in range(n)]
